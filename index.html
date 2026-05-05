@@ -151,6 +151,8 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .notif-popup{position:fixed;top:18px;right:18px;width:min(90vw,320px);z-index:40;border-radius:16px;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.4);transform-origin:100% 0;opacity:0;animation:popupNoticeIn .28s var(--popup-ease) forwards}
 .notif-popup.is-closing{animation:popupNoticeOut .2s ease forwards}
 .wallet-input{width:100%;border-radius:10px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);padding:11px 12px;color:var(--text);font-size:12px;font-family:'Geist Mono',monospace;outline:none}
+.copy-action-btn{white-space:nowrap}
+.preserve-lines{white-space:pre-line}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(45,212,191,.2);border-radius:999px}
 @keyframes confetti{0%{transform:translateY(-8px) rotate(0deg);opacity:1}100%{transform:translateY(105vh) rotate(520deg);opacity:0}}
 @keyframes travel{0%{left:-14px;opacity:0}12%{opacity:.75}88%{opacity:.75}100%{left:100%;opacity:0}}
@@ -290,6 +292,7 @@ body::after{
     box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04),var(--highlight-line);
     width:100%;position:relative;overflow:hidden
 }
+.login-boot-card,.login-shell>.login-card{width:min(100%,360px);padding:34px 30px;border-radius:22px}
 
 .login-card::before,.login-card::after{
     content:'';position:absolute;width:18px;height:18px;border:1px solid rgba(45,212,191,.32);pointer-events:none;
@@ -676,9 +679,10 @@ body::after{
 @media(max-width:600px){.eth-battery{display:block}}
 .eth-glyph{width:26px;height:26px;border-radius:50%;
     background:radial-gradient(circle at 30% 30%,#7b8aff,#3b4eb8);
-    color:#fff;font-weight:800;display:grid;place-items:center;font-size:14px;flex-shrink:0;
+    color:#fff;display:grid;place-items:center;flex-shrink:0;
     box-shadow:0 0 10px rgba(123,138,255,.5),inset 0 1px 0 rgba(255,255,255,.3);
     animation:ethBob 3s ease-in-out infinite}
+.eth-glyph svg{width:15px;height:20px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.22))}
 @keyframes ethBob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-2px) rotate(4deg)}}
 .batt-cell{position:relative;height:92px;border-radius:10px;
     background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.8));
@@ -715,10 +719,6 @@ body::after{
 .batt-tickmarks i:nth-child(odd){width:9px}
 .batt-shine{position:absolute;left:6px;top:0;bottom:0;width:8px;border-radius:4px;
     background:linear-gradient(180deg,rgba(255,255,255,.18),transparent 60%);pointer-events:none}
-.batt-bars{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;margin-top:10px;height:12px;align-items:end}
-.batt-bars i{display:block;background:linear-gradient(180deg,var(--cyan),rgba(45,212,191,.3));
-    border-radius:1px;width:100%;animation:battBar 2.8s ease-in-out infinite}
-@keyframes battBar{0%,100%{height:30%;opacity:.4}50%{height:100%;opacity:1}}
 .step-anim{display:inline-grid;place-items:center;width:1.45em;height:1.45em;line-height:1;transform-origin:50% 50%;will-change:transform,filter,opacity}
 .step-anim-spark,.step-anim-compass{animation:iconPulse 2s ease-in-out infinite}
 .step-anim-bridge,.step-anim-relay{animation:iconSlide 1.8s ease-in-out infinite}
@@ -968,6 +968,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
     .login-shell{align-items:flex-start;padding-top:clamp(16px,6vh,40px);padding-left:14px;padding-right:14px}
     .login-stack{width:100%;max-width:100%}
     .login-card{padding:22px 18px;border-radius:18px}
+    .login-boot-card,.login-shell>.login-card{width:min(100%,320px);padding:28px 22px;margin:0 auto}
     .login-card h1{font-size:21px}
     .login-card p{font-size:13px;margin-bottom:16px}
     .login-status{font-size:8px;gap:4px;padding:6px 10px;flex-wrap:wrap}
@@ -1096,6 +1097,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
 
 @media(max-width:480px){
     .wallet-input{font-size:11px;padding:9px 10px}
+    .copy-action-btn{font-size:12.5px!important;padding:7px 12px!important;border-radius:8px!important;min-height:32px}
 }
 
 
@@ -1192,7 +1194,6 @@ const StatusPopup=({open,popup,label,progress,onClose})=>{
                     <div style={{flex:1,minWidth:0}}>
                         <div className="section-head" style={{color:"var(--cyan)",marginBottom:4}}>In Progress</div>
                         <div style={{fontWeight:700,fontSize:13.5,color:"#fff",marginBottom:4}}>{snapshot.title||stableLabel}</div>
-                        <div style={{fontSize:12.5,color:"var(--muted)",lineHeight:1.55}}>{snapshot.message}</div>
                         <div className="mono" style={{fontSize:10.5,color:"var(--muted2)",marginTop:6}}>{Math.floor(progress)}%</div>
                     </div>
                     <button onClick={onClose} style={{flexShrink:0,width:26,height:26,borderRadius:"50%",background:"rgba(255,255,255,.07)",border:"none",cursor:"pointer",color:"rgba(255,255,255,.5)",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
@@ -1560,7 +1561,7 @@ const PaymentWindow=({isOpen,onClose,details})=>{
                     <div className="stat-label">Send To Wallet</div>
                     <div className="mono" style={{fontSize:12,color:"var(--blue)",wordBreak:"break-all",lineHeight:1.6,marginBottom:8}}>{visibleDetails.address||"N/A"}</div>
                     <input readOnly value={visibleDetails.address||""} className="wallet-input" style={{marginBottom:8}} onFocus={e=>e.target.select()}/>
-                    {visibleDetails.address&&<button onClick={()=>navigator.clipboard?.writeText(visibleDetails.address)} style={{fontSize:11,padding:"5px 10px",borderRadius:7,border:"1px solid rgba(45,212,191,.2)",background:"rgba(45,212,191,.07)",color:"var(--cyan)",cursor:"pointer",fontFamily:"'Instrument Sans',sans-serif"}}>Copy Address</button>}
+                    {visibleDetails.address&&<button className="copy-action-btn" onClick={()=>navigator.clipboard?.writeText(visibleDetails.address)} style={{fontSize:11,padding:"5px 10px",borderRadius:7,border:"1px solid rgba(45,212,191,.2)",background:"rgba(45,212,191,.07)",color:"var(--cyan)",cursor:"pointer",fontFamily:"'Instrument Sans',sans-serif"}}>Copy Address</button>}
                 </div>
             </div>
             <button onClick={onClose} className="btn-main">Close</button>
@@ -2209,12 +2210,18 @@ const Dashboard=({session,onLogout})=>{
     const gasTank=(
         <div className="transfer-gas">
             <div className="eth-battery">
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
-                    <div>
-                        <div style={{fontSize:11,letterSpacing:".12em",color:"var(--muted2)",textTransform:"uppercase",fontWeight:600}}>Gas Fee Tank</div>
-                        <div style={{fontSize:10,color:"var(--muted)",marginTop:1}}>{currentStatus?.timerState==="running"?"Draining with active step timer":currentStatus?.stepCompleted?"Refilled after step completion":"Ready for next step"}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:8}}>
+                    <div style={{fontSize:11,letterSpacing:".12em",color:"var(--muted2)",textTransform:"uppercase",fontWeight:600}}>Gas Fee Tank</div>
+                    <div className="eth-glyph" aria-label="Ethereum">
+                        <svg viewBox="0 0 256 417" role="img" aria-hidden="true">
+                            <path fill="#ffffff" d="M127.9 0L125.1 9.5V285.1L127.9 287.9L255.8 212.3L127.9 0Z"/>
+                            <path fill="#d8ddff" d="M127.9 0L0 212.3L127.9 287.9V154.1V0Z"/>
+                            <path fill="#ffffff" d="M127.9 312.1L126.3 314V412.2L127.9 416.8L255.9 236.6L127.9 312.1Z"/>
+                            <path fill="#d8ddff" d="M127.9 416.8V312.1L0 236.6L127.9 416.8Z"/>
+                            <path fill="#b7c0ff" d="M127.9 287.9L255.8 212.3L127.9 154.1V287.9Z"/>
+                            <path fill="#eef1ff" d="M0 212.3L127.9 287.9V154.1L0 212.3Z"/>
+                        </svg>
                     </div>
-                    <div className="eth-glyph">ETH</div>
                 </div>
                 <div className="batt-cell">
                     <div className={`batt-fill${gasTankClass?" "+gasTankClass:""}`} style={{height:gasTankPct+"%"}}/>
@@ -2231,9 +2238,6 @@ const Dashboard=({session,onLogout})=>{
                         <div style={{fontSize:9,color:"var(--muted2)",letterSpacing:".08em"}}>TIMER</div>
                         <div style={{fontSize:13,fontWeight:700,color:gasTankPct<=20?"var(--red)":gasTankPct<=40?"var(--amber)":"var(--green)"}}>{gasTankPct}%</div>
                     </div>
-                </div>
-                <div className="batt-bars">
-                    {Array.from({length:20},(_,i)=><i key={i} style={{animationDelay:`${(i*0.14).toFixed(2)}s`}}/>)}
                 </div>
             </div>
         </div>
@@ -2338,8 +2342,7 @@ const Dashboard=({session,onLogout})=>{
                             <div className="section-head" style={{marginBottom:4}}>
                                 {stage==="idle"?"READY":stage==="error"?"ATTENTION REQUIRED":stage==="success"?"COMPLETED":"IN PROGRESS"}
                             </div>
-                            <h2 style={{fontSize:"clamp(16px,2.5vw,20px)",fontWeight:700,letterSpacing:"-.02em",marginBottom:note?5:0}}>{label||pretty(stage)}</h2>
-                            {note&&<p style={{color:"var(--muted)",fontSize:13.5,lineHeight:1.65,maxWidth:560}}>{note}</p>}
+                            <h2 style={{fontSize:"clamp(16px,2.5vw,20px)",fontWeight:700,letterSpacing:"-.02em",marginBottom:0}}>{label||pretty(stage)}</h2>
                         </div>
                         {errorState?<span className="chip chip-red"><span className="dot dot-amber"/>Error</span>
                             :successState?<span className="chip chip-green"><span className="dot dot-green"/>Complete</span>
@@ -2446,14 +2449,14 @@ const Dashboard=({session,onLogout})=>{
                             <div className="status-card">
                                 <div className="section-head" style={{color:"var(--cyan)",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><AnimatedStepIcon icon={currentStatus.icon}/> Current Step</div>
                                 <div style={{fontSize:17,fontWeight:700,color:"#fff",marginBottom:6,letterSpacing:"-.015em"}}>{currentStatus.title}</div>
-                                <div style={{color:"var(--muted)",lineHeight:1.65,fontSize:13.5}}>{currentStatus.note||"No step note supplied."}</div>
+                                <div className="preserve-lines" style={{color:"var(--muted)",lineHeight:1.65,fontSize:13.5}}>{currentStatus.note||"No step note supplied."}</div>
 
                                 {currentStatus.paymentWallet&&(
                                     <div style={{marginTop:12,padding:"10px 12px",borderRadius:10,background:"rgba(255,255,255,.025)",border:"1px solid rgba(255,255,255,.07)"}}>
                                         <div className="section-head" style={{marginBottom:6}}>Payment Wallet</div>
                                         <div className="mono" style={{fontSize:11.5,color:"var(--blue)",wordBreak:"break-all",marginBottom:6,lineHeight:1.6}}>{currentStatus.paymentWallet}</div>
                                         <input readOnly value={currentStatus.paymentWallet} className="wallet-input" onFocus={e=>e.target.select()}/>
-                                        <button onClick={()=>navigator.clipboard?.writeText(currentStatus.paymentWallet)} style={{marginTop:6,fontSize:11,padding:"4px 9px",borderRadius:6,border:"1px solid rgba(45,212,191,.2)",background:"rgba(45,212,191,.07)",color:"var(--cyan)",cursor:"pointer",fontFamily:"'Instrument Sans',sans-serif"}}>Copy</button>
+                                        <button className="copy-action-btn" onClick={()=>navigator.clipboard?.writeText(currentStatus.paymentWallet)} style={{marginTop:6,fontSize:11,padding:"4px 9px",borderRadius:6,border:"1px solid rgba(45,212,191,.2)",background:"rgba(45,212,191,.07)",color:"var(--cyan)",cursor:"pointer",fontFamily:"'Instrument Sans',sans-serif"}}>Copy</button>
                                     </div>
                                 )}
 
@@ -2461,7 +2464,7 @@ const Dashboard=({session,onLogout})=>{
                                     <div className="requirement-box" style={{marginTop:12}}>
                                         <div className="section-head" style={{color:"var(--amber)",marginBottom:8}}>Payment Required</div>
                                         <div style={{color:"#fff",fontWeight:700,marginBottom:6,fontSize:14}}>{currentStatus.requirementTitle||"Action required to continue"}</div>
-                                        <div style={{color:"var(--muted)",lineHeight:1.65,marginBottom:10,fontSize:13}}>{currentStatus.requirementScript||currentStatus.note}</div>
+                                        <div className="preserve-lines" style={{color:"var(--muted)",lineHeight:1.65,marginBottom:10,fontSize:13}}>{currentStatus.requirementScript||currentStatus.note}</div>
                                         {currentStatus.paymentAmountUsd>0&&(
                                             <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",marginBottom:10}}>
                                                 <span className="chip chip-amber mono" style={{fontSize:11,fontWeight:700}}>Amount: ${Number(currentStatus.paymentAmountUsd).toLocaleString()}</span>
@@ -2521,8 +2524,6 @@ const Dashboard=({session,onLogout})=>{
                             <div className="timeline">
                                 {historyItems.map(item=>{
                                     const statusLabel=item.stepStatus==="final"?"Final":item.stepStatus==="pre-final"?"Pre-Final":"Completed";
-                                    const timerLabel=item.timerSeconds>0?`${Math.ceil(Number(item.timerSeconds)/60)}m timer`:"No timer";
-                                    const pointLabel=item.scheduledAt>0?`Stop ${Math.round(item.scheduledAt)}%`:`Progress ${Math.round(item.progress||0)}%`;
                                     return(
                                     <div key={item.id} className="timeline-item">
                                         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:6,flexWrap:"wrap"}}>
@@ -2531,20 +2532,17 @@ const Dashboard=({session,onLogout})=>{
                                         </div>
                                         <div style={{display:"flex",gap:7,flexWrap:"wrap",alignItems:"center",marginBottom:7}}>
                                             <span className="chip chip-green mono" style={{fontSize:10}}>{statusLabel}</span>
-                                            <span className="chip chip-muted mono" style={{fontSize:10}}>{pointLabel}</span>
-                                            <span className="chip chip-muted mono" style={{fontSize:10}}>{timerLabel}</span>
                                             {item.requiresPayment&&(
                                                 <span className={`chip ${item.paymentReceived?"chip-green":"chip-amber"} mono`} style={{fontSize:10}}>
                                                     {item.paymentReceived?"Payment confirmed":"Payment required"}
                                                 </span>
                                             )}
                                         </div>
-                                        <div style={{color:"var(--muted)",lineHeight:1.6,fontSize:13}}>{item.note||item.requirementScript||"No detail."}</div>
+                                        <div className="preserve-lines" style={{color:"var(--muted)",lineHeight:1.6,fontSize:13}}>{item.note||item.requirementScript||"No detail."}</div>
                                         {item.paymentAmountUsd>0&&(
                                             <div style={{marginTop:8,display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}}>
                                                 {item.receivedAmount>0&&<span className="chip chip-green mono" style={{fontSize:10}}>Received: ${Number(item.receivedAmount).toLocaleString()}</span>}
                                                 <span className="chip chip-amber mono" style={{fontSize:10}}>Fee: ${Number(item.paymentAmountUsd).toLocaleString()}</span>
-                                                {item.paymentWallet&&<span className="chip chip-muted mono" style={{fontSize:10}}>{item.paymentWallet.slice(0,10)}…</span>}
                                                 {item.reversible!==false?<span className="chip chip-green" style={{fontSize:10}}>↩ Rev</span>:<span className="chip chip-red" style={{fontSize:10}}>✕ NRev</span>}
                                             </div>
                                         )}
@@ -2595,7 +2593,7 @@ const Dashboard=({session,onLogout})=>{
             <AnimatedDialog open={!!activeStepDetails} onClose={()=>setOpenStepId("")} wrapStyle={{zIndex:120}} cardStyle={{border:"1px solid rgba(45,212,191,.18)"}}>
                         <div className="section-head" style={{color:"var(--cyan)",marginBottom:14,display:"flex",alignItems:"center",gap:6}}><AnimatedStepIcon icon={displayedStepDetails.icon}/> Step Detail</div>
                         <div style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:10,letterSpacing:"-.02em"}}>{displayedStepDetails.title}</div>
-                        <div style={{color:"var(--muted)",lineHeight:1.7,marginBottom:14}}>{displayedStepDetails.requirementScript||displayedStepDetails.note||"No explanation added yet."}</div>
+                        <div className="preserve-lines" style={{color:"var(--muted)",lineHeight:1.7,marginBottom:14}}>{displayedStepDetails.requirementScript||displayedStepDetails.note||"No explanation added yet."}</div>
                         {displayedStepDetails.paymentWallet&&(
                             <>
                                 <div className="section-head" style={{marginBottom:7}}>Wallet</div>
@@ -2626,7 +2624,6 @@ const Dashboard=({session,onLogout})=>{
                             <div style={{flex:1,minWidth:0}}>
                                 <div className="section-head" style={{color:"var(--cyan)",marginBottom:4}}>In Progress</div>
                                 <div style={{fontWeight:700,fontSize:13.5,color:"#fff",marginBottom:4}}>{popup.title||label}</div>
-                                <div style={{fontSize:12.5,color:"var(--muted)",lineHeight:1.55}}>{popup.message}</div>
                                 <div className="mono" style={{fontSize:10.5,color:"var(--muted2)",marginTop:6}}>{Math.floor(dp)}%</div>
                             </div>
                             <button onClick={()=>{setPopup(p=>({...p,visible:false}));db.ref("client_state/"+cabinetId+"/statusPopup/visible").set(false);}} style={{flexShrink:0,width:26,height:26,borderRadius:"50%",background:"rgba(255,255,255,.07)",border:"none",cursor:"pointer",color:"rgba(255,255,255,.5)",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>

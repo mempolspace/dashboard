@@ -20,7 +20,8 @@
     --bg:#060b14;--surface:rgba(10,16,28,0.94);--surface2:rgba(7,11,20,0.96);
     --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
     --cyan:#2dd4bf;--blue:#5b9cf6;--violet:#8b8ef8;--green:#3ecf8e;--red:#f87171;--amber:#fbbf24;
-    --text:#eef2f8;--muted:rgba(238,242,248,0.55);--muted2:rgba(238,242,248,0.28)
+    --text:#eef2f8;--muted:rgba(238,242,248,0.55);--muted2:rgba(238,242,248,0.28);
+    --popup-dur:.32s;--popup-exit:.24s;--popup-ease:cubic-bezier(.16,1,.3,1)
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -99,37 +100,72 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .section-head{font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:rgba(238,242,248,.3);margin-bottom:10px}
 .scanline-wrap{position:relative;overflow:hidden}
 .scanline-wrap::after{content:'';position:absolute;left:0;right:0;top:-4px;height:2px;background:linear-gradient(90deg,transparent,rgba(45,212,191,.12),transparent);animation:scanline 3.5s linear infinite;pointer-events:none}
-.chat-bubble-btn{position:fixed;bottom:26px;right:26px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),#3b82f6);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1000;color:#040e1a;transition:transform .18s;box-shadow:0 4px 20px rgba(45,212,191,.25)}
-.chat-bubble-btn:hover{transform:scale(1.07)}
-.chat-unread-badge{position:absolute;top:-3px;right:-3px;background:var(--red);color:#fff;border-radius:50%;width:19px;height:19px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
-.chat-window{position:fixed;bottom:92px;right:26px;width:340px;max-height:540px;border-radius:18px;z-index:999;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5)}
-.chat-header{background:linear-gradient(135deg,rgba(14,116,144,.95),rgba(29,78,216,.95));padding:13px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(12px)}
-.chat-header-title{font-size:14px;font-weight:700;color:#fff}
-.chat-close-btn{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.15);border:none;cursor:pointer;color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;transition:.14s}
-.chat-close-btn:hover{background:rgba(255,255,255,.25)}
-.chat-messages{flex:1;overflow-y:auto;padding:12px;background:rgba(4,7,16,.98);display:flex;flex-direction:column;gap:8px;max-height:320px}
-.chat-msg{display:flex;flex-direction:column;animation:msgIn .2s ease-out}
+.chat-bubble-btn{position:fixed;bottom:26px;right:26px;width:62px;height:62px;border-radius:22px;background:linear-gradient(145deg,var(--cyan),#4d8df7 52%,var(--violet));border:1px solid rgba(255,255,255,.18);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1000;color:#04111e;transition:transform .18s,filter .18s,box-shadow .18s;box-shadow:0 18px 36px rgba(0,0,0,.36),0 0 0 1px rgba(45,212,191,.18),0 0 34px rgba(45,212,191,.26)}
+.chat-bubble-btn::before{content:'';position:absolute;inset:7px;border-radius:17px;background:linear-gradient(145deg,rgba(255,255,255,.34),transparent 46%);pointer-events:none}
+.chat-bubble-btn:hover{transform:translateY(-2px) scale(1.03);filter:saturate(1.08)}
+.chat-bubble-btn:active{transform:translateY(0) scale(.98)}
+.chat-unread-badge{position:absolute;top:-5px;right:-5px;min-width:22px;height:22px;padding:0 6px;background:linear-gradient(135deg,var(--red),#fb923c);color:#fff;border:2px solid #08111f;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;box-shadow:0 8px 18px rgba(248,113,113,.34)}
+.chat-window{position:fixed;bottom:100px;right:26px;width:min(420px,calc(100vw - 32px));height:min(640px,calc(100vh - 132px));height:min(640px,calc(100dvh - 132px));border-radius:28px;z-index:999;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 28px 80px rgba(0,0,0,.58),0 0 0 1px rgba(255,255,255,.08),0 0 48px rgba(45,212,191,.08);animation:chatPanelIn .28s cubic-bezier(.16,1,.3,1) both;isolation:isolate}
+.chat-window::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 18% 0%,rgba(45,212,191,.16),transparent 34%),radial-gradient(circle at 92% 12%,rgba(91,156,246,.16),transparent 36%);pointer-events:none;z-index:0}
+.chat-header{padding:17px 18px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(135deg,rgba(11,22,38,.94),rgba(8,15,28,.96));border-bottom:1px solid rgba(255,255,255,.07)}
+.chat-header::before{content:'MP';width:38px;height:38px;border-radius:14px;background:linear-gradient(135deg,var(--cyan),#3b82f6);color:#04111e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;font-family:'Geist Mono',monospace;box-shadow:0 8px 24px rgba(45,212,191,.2);flex-shrink:0}
+.chat-agent{display:flex;align-items:center;gap:12px;min-width:0}
+.chat-agent-avatar{width:38px;height:38px;border-radius:14px;background:linear-gradient(135deg,var(--cyan),#3b82f6);color:#04111e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;font-family:'Geist Mono',monospace;box-shadow:0 8px 24px rgba(45,212,191,.2);flex-shrink:0}
+.chat-header-title{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.02em;margin-right:auto;display:flex;flex-direction:column;gap:3px}
+.chat-header-title::after{content:'Online support';font-size:11px;font-weight:500;color:rgba(238,242,248,.58);letter-spacing:0}
+.chat-agent-status{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:11px;color:rgba(238,242,248,.58)}
+.chat-agent-status span{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 9px rgba(62,207,142,.8)}
+.chat-close-btn{width:36px;height:36px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;transition:background .14s,transform .14s;font-size:0;position:relative;flex-shrink:0}
+.chat-close-btn::before,.chat-close-btn::after{content:'';position:absolute;width:14px;height:2px;border-radius:999px;background:#fff}
+.chat-close-btn::before{transform:rotate(45deg)}
+.chat-close-btn::after{transform:rotate(-45deg)}
+.chat-close-btn:hover{background:rgba(255,255,255,.13);transform:translateY(-1px)}
+.chat-messages{flex:1;min-height:0;overflow-y:auto;padding:18px 16px;background:linear-gradient(180deg,rgba(4,8,16,.95),rgba(3,6,12,.98));display:flex;flex-direction:column;gap:12px;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch}
+.chat-empty-state{margin:auto 0;padding:32px 18px;text-align:center;color:var(--muted);display:grid;place-items:center;gap:10px}
+.chat-empty-orb{width:56px;height:56px;border-radius:20px;background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.18);display:grid;place-items:center;color:var(--cyan)}
+.chat-empty-title{font-size:14px;font-weight:800;color:var(--text);letter-spacing:-.01em}
+.chat-empty-copy{max-width:240px;font-size:12.5px;line-height:1.55;color:var(--muted)}
+.chat-msg{display:flex;flex-direction:column;animation:msgIn .18s ease-out}
 .chat-msg.admin{align-items:flex-start}.chat-msg.client{align-items:flex-end}
-.chat-bubble-body{max-width:78%;padding:9px 12px;border-radius:12px;font-size:13px;word-break:break-word;line-height:1.5}
-.chat-msg.admin .chat-bubble-body{background:rgba(45,212,191,.09);border:1px solid rgba(45,212,191,.16);border-top-left-radius:3px;color:var(--text)}
-.chat-msg.client .chat-bubble-body{background:rgba(139,142,248,.09);border:1px solid rgba(139,142,248,.16);border-top-right-radius:3px;color:var(--text)}
-.chat-time{font-size:9.5px;color:var(--muted2);margin-top:3px;font-family:'Geist Mono',monospace}
-.chat-input-area{padding:10px 12px;background:rgba(3,5,12,.99);border-top:1px solid rgba(255,255,255,.06)}
-.chat-input-wrap{display:flex;gap:7px}
-.chat-input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'Instrument Sans',sans-serif;outline:none;transition:.15s}
-.chat-input:focus{border-color:rgba(45,212,191,.25)}
-.chat-send-btn{background:linear-gradient(135deg,var(--cyan),#3b82f6);border:none;width:36px;height:36px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#040e1a;font-size:16px;font-weight:700}
-.dialog-wrap{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
-.dialog-card{position:relative;z-index:2;width:min(100%,480px);padding:28px;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.6)}
-.dialog-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px)}
-.notif-popup{position:fixed;top:18px;right:18px;width:min(90vw,320px);z-index:40;border-radius:16px;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.4)}
+.chat-bubble-body{max-width:82%;padding:11px 13px;border-radius:18px;font-size:13.5px;word-break:break-word;line-height:1.48;box-shadow:0 8px 22px rgba(0,0,0,.16)}
+.chat-msg.admin .chat-bubble-body{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);border-top-left-radius:6px;color:var(--text)}
+.chat-msg.client .chat-bubble-body{background:linear-gradient(135deg,var(--cyan),#4d8df7);border:1px solid rgba(255,255,255,.18);border-top-right-radius:6px;color:#03101b;font-weight:650}
+.chat-time{font-size:10px;color:var(--muted2);margin-top:5px;font-family:'Geist Mono',monospace}
+.chat-input-area{padding:13px 14px 14px;background:rgba(4,8,16,.98);border-top:1px solid rgba(255,255,255,.07)}
+.chat-header,.chat-messages,.chat-input-area{position:relative;z-index:1}
+.chat-input-wrap{display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:10px;align-items:end}
+.chat-input{width:100%;min-height:46px;max-height:104px;resize:none;background:rgba(255,255,255,.065);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:13px 14px;color:var(--text);font-size:14px;line-height:1.35;font-family:'Instrument Sans',sans-serif;outline:none;transition:border-color .15s,background .15s,box-shadow .15s;overflow-y:auto}
+.chat-input-wrap>input.chat-input{display:none}
+.chat-input:focus{border-color:rgba(45,212,191,.36);background:rgba(255,255,255,.085);box-shadow:0 0 0 3px rgba(45,212,191,.08)}
+.chat-input::placeholder{color:rgba(238,242,248,.35)}
+.chat-send-btn{background:linear-gradient(135deg,var(--cyan),#3b82f6);border:1px solid rgba(255,255,255,.14);width:46px;height:46px;border-radius:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#04111e;font-size:0;font-weight:800;box-shadow:0 10px 24px rgba(45,212,191,.22);transition:transform .14s,opacity .14s,box-shadow .14s;position:relative}
+.chat-send-btn::before{content:'';width:13px;height:13px;border-top:2.5px solid #04111e;border-right:2.5px solid #04111e;transform:rotate(45deg) translate(-1px,1px);border-radius:1px}
+.chat-send-btn:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(45,212,191,.3)}
+.chat-send-btn:disabled{opacity:.42;cursor:not-allowed;transform:none;box-shadow:none}
+.dialog-wrap{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;animation:dialogOverlayIn var(--popup-dur) var(--popup-ease) forwards}
+.dialog-wrap.is-closing{animation:dialogOverlayOut var(--popup-exit) ease forwards}
+.dialog-card{position:relative;z-index:2;width:min(100%,480px);padding:28px;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.6);transform-origin:50% 54%;opacity:0;animation:dialogCardIn var(--popup-dur) var(--popup-ease) forwards}
+.dialog-wrap.is-closing .dialog-card{animation:dialogCardOut var(--popup-exit) cubic-bezier(.4,0,.2,1) forwards}
+.dialog-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);opacity:0;animation:dialogBackdropIn var(--popup-dur) ease forwards}
+.dialog-wrap.is-closing .dialog-backdrop{animation:dialogBackdropOut var(--popup-exit) ease forwards}
+.notif-popup{position:fixed;top:18px;right:18px;width:min(90vw,320px);z-index:40;border-radius:16px;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.4);transform-origin:100% 0;opacity:0;animation:popupNoticeIn .28s var(--popup-ease) forwards}
+.notif-popup.is-closing{animation:popupNoticeOut .2s ease forwards}
 .wallet-input{width:100%;border-radius:10px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);padding:11px 12px;color:var(--text);font-size:12px;font-family:'Geist Mono',monospace;outline:none}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(45,212,191,.2);border-radius:999px}
 @keyframes confetti{0%{transform:translateY(-8px) rotate(0deg);opacity:1}100%{transform:translateY(105vh) rotate(520deg);opacity:0}}
 @keyframes travel{0%{left:-14px;opacity:0}12%{opacity:.75}88%{opacity:.75}100%{left:100%;opacity:0}}
 @keyframes scanline{0%{transform:translateY(-4px);opacity:.5}100%{transform:translateY(100%);opacity:0}}
+@keyframes chatPanelIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes msgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeSlideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes dialogOverlayIn{from{opacity:0}to{opacity:1}}
+@keyframes dialogOverlayOut{from{opacity:1}to{opacity:0}}
+@keyframes dialogBackdropIn{from{opacity:0}to{opacity:1}}
+@keyframes dialogBackdropOut{from{opacity:1}to{opacity:0}}
+@keyframes dialogCardIn{from{opacity:0;transform:translateY(22px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes dialogCardOut{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(16px) scale(.97)}}
+@keyframes popupNoticeIn{from{opacity:0;transform:translateY(-14px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes popupNoticeOut{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-10px) scale(.96)}}
 @keyframes markerPulse{0%,100%{opacity:1;box-shadow:0 0 6px rgba(251,191,36,.5)}50%{opacity:.6;box-shadow:0 0 12px rgba(251,191,36,.8)}}
 @keyframes dotPulse{0%,100%{opacity:1;box-shadow:0 0 4px rgba(45,212,191,.6)}50%{opacity:.5;box-shadow:0 0 10px rgba(45,212,191,.9)}}
 @keyframes deltaFade{0%{opacity:1;transform:translateY(0) scale(1)}40%{opacity:.95;transform:translateY(-8px) scale(1.05)}100%{opacity:0;transform:translateY(-22px) scale(.9)}}
@@ -137,14 +173,17 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 @keyframes finalGlowPulse{0%,100%{box-shadow:0 0 8px rgba(248,113,113,.15)}50%{box-shadow:0 0 18px rgba(248,113,113,.3)}}
 .status-node.active{border-color:rgba(45,212,191,.35)!important;background:rgba(45,212,191,.09)!important;box-shadow:0 0 14px rgba(45,212,191,.1)}
 .dot-cyan.pulsing{animation:dotPulse 1.4s ease-in-out infinite}
-@media(max-width:760px){.chat-window{width:calc(100vw - 20px);right:10px;bottom:80px;max-height:60vh}.chat-bubble-btn{width:50px;height:50px;bottom:18px;right:18px}.notif-popup{top:12px;right:12px;width:calc(100vw - 24px)}}
+@media(prefers-reduced-motion:reduce){
+    .dialog-wrap,.dialog-card,.dialog-backdrop,.notif-popup,.chat-window,.chat-msg{animation:none!important;opacity:1!important;transform:none!important}
+}
+@media(max-width:760px){body.chat-lock{overflow:hidden}.chat-window{left:10px;right:10px;bottom:calc(82px + env(safe-area-inset-bottom));width:auto;height:70vh;height:min(70dvh,620px);border-radius:26px}.chat-bubble-btn{width:56px;height:56px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));border-radius:20px}.notif-popup{top:12px;right:12px;width:calc(100vw - 24px)}}
+@media(max-width:760px){
+    .glass,.glass2,.login-card,.corridor-card,.stat-card{backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 6px 18px rgba(0,0,0,.24)}
+    .orbit,.particle,.travel-dot,.mesh-bg,.scanline,.skeleton::after{animation:none!important;display:none!important}
+    .metric-fill,.prog-fill{transition:width .12s linear}
+}
 
-/* ═══════════════════════════════════════════════════════════════
-   VISUAL ENHANCEMENT LAYER — conservative pass
-   All tokens reference existing system vars. Nothing structural.
-   ═══════════════════════════════════════════════════════════════ */
 
-/* Extended tokens */
 :root{
     --glow-cyan:0 0 22px rgba(45,212,191,.17);
     --glow-violet:0 0 22px rgba(139,142,248,.14);
@@ -158,7 +197,7 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     --card-shadow:0 6px 28px rgba(0,0,0,.32);
 }
 
-/* Body ambient — richer dual gradient */
+
 body::after{
     background:
         radial-gradient(ellipse 65% 45% at 12% 0%,rgba(45,212,191,.09) 0%,transparent 60%),
@@ -166,7 +205,7 @@ body::after{
         radial-gradient(ellipse 40% 30% at 55% 50%,rgba(91,156,246,.03) 0%,transparent 55%)
 }
 
-/* Glass surface — gradient fill + highlight edge */
+
 .glass{
     background:linear-gradient(160deg,rgba(13,19,34,.96),rgba(8,12,24,.97));
     box-shadow:var(--card-shadow),var(--highlight-line)
@@ -176,7 +215,7 @@ body::after{
     box-shadow:var(--card-shadow),var(--highlight-line)
 }
 
-/* Stat cards — depth + hover lift */
+
 .stat-card{
     background:linear-gradient(145deg,rgba(255,255,255,.032),rgba(255,255,255,.014));
     box-shadow:0 2px 14px rgba(0,0,0,.22),var(--highlight-line);
@@ -184,10 +223,10 @@ body::after{
 }
 .stat-card:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,0,0,.28),var(--highlight-line)}
 
-/* Number columns — tabular figures */
+
 .stat-value,.mono{font-feature-settings:'tnum'}
 
-/* Status rail nodes — richer hover + active glow */
+
 .status-node{
     box-shadow:0 2px 8px rgba(0,0,0,.22);
     transition:transform var(--t-base),border-color var(--t-base),background var(--t-base),box-shadow var(--t-base)
@@ -200,25 +239,24 @@ body::after{
 .status-node.done{box-shadow:0 0 14px rgba(62,207,142,.1),0 2px 8px rgba(0,0,0,.18)}
 .status-node.blocked-node{box-shadow:0 0 12px rgba(251,191,36,.1),0 2px 8px rgba(0,0,0,.18)}
 
-/* Progress bar — animated shimmer on the moving fill */
+
 .prog-fill.moving{background:linear-gradient(90deg,var(--cyan),#5b9cf6,var(--violet));background-size:200% 100%;animation:barFlow 3s linear infinite}
 .prog-fill.moving::before{content:'';position:absolute;top:0;bottom:0;left:-80px;width:80px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);animation:progShimmer 2.4s cubic-bezier(.4,0,.6,1) infinite}
 @keyframes barFlow{0%{background-position:0% 50%}100%{background-position:200% 50%}}
 @keyframes progShimmer{0%{left:-80px;opacity:0}20%{opacity:1}80%{opacity:1}100%{left:110%;opacity:0}}
 
-/* Progress track — subtle inner glow */
+
 .prog-track{box-shadow:inset 0 1px 3px rgba(0,0,0,.4)}
 
 
-/* Requirement box — elevated */
 .requirement-box{
     background:linear-gradient(145deg,rgba(251,191,36,.06),rgba(251,191,36,.03));
     box-shadow:0 2px 12px rgba(0,0,0,.18),inset 0 1px 0 rgba(251,191,36,.1)
 }
 
-/* ─── LOGIN SCREEN — premium ambient ────────────────────────────────── */
+
 .login-shell{position:relative;overflow:hidden}
-/* Ambient mesh background — slow drifting blobs */
+
 .login-shell::before{
     content:'';position:absolute;inset:-10%;pointer-events:none;z-index:0;
     background:
@@ -229,7 +267,7 @@ body::after{
     animation:loginMeshDrift 22s ease-in-out infinite alternate;
     filter:blur(8px);
 }
-/* Faint dot grid — layered above blobs, masked to a soft vignette */
+
 .login-shell::after{
     content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
     background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);
@@ -243,22 +281,22 @@ body::after{
     100%{transform:translate(1.8%,-1.2%) scale(1.02)}
 }
 
-/* Card stack wrapper to host card + ambient corridor below */
+
 .login-stack{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:14px;width:min(100%,460px)}
 
-/* Login card — layered depth */
+
 .login-card{
     background:linear-gradient(160deg,rgba(11,17,30,.97),rgba(7,11,22,.98));
     box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04),var(--highlight-line);
     width:100%;position:relative;overflow:hidden
 }
-/* Corner ornaments */
+
 .login-card::before,.login-card::after{
     content:'';position:absolute;width:18px;height:18px;border:1px solid rgba(45,212,191,.32);pointer-events:none;
 }
 .login-card::before{top:14px;left:14px;border-right:none;border-bottom:none;border-top-left-radius:6px}
 .login-card::after{bottom:14px;right:14px;border-left:none;border-top:none;border-bottom-right-radius:6px}
-/* Top accent line — slow cyan sweep */
+
 .login-card .login-accent{
     position:absolute;top:0;left:0;right:0;height:1px;
     background:linear-gradient(90deg,transparent 0%,rgba(45,212,191,0) 25%,rgba(45,212,191,.6) 50%,rgba(45,212,191,0) 75%,transparent 100%);
@@ -267,7 +305,7 @@ body::after{
 }
 @keyframes loginAccentSweep{0%{background-position:100% 0}100%{background-position:-100% 0}}
 
-/* Status strip on top of card */
+
 .login-status{
     display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:22px;
     padding:8px 12px;border-radius:10px;
@@ -281,7 +319,7 @@ body::after{
 .login-status-dot.amber{background:#fbbf24;box-shadow:0 0 8px #fbbf24}
 .login-status-val{color:rgba(238,242,248,.78);font-weight:600}
 
-/* Login logo — refined with rotating ring */
+
 .login-logo{position:relative;margin-bottom:18px}
 .login-logo::before{
     content:'';position:absolute;inset:-7px;border-radius:18px;
@@ -296,7 +334,7 @@ body::after{
 }
 @keyframes logoRotate{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 
-/* Login field focus glow */
+
 .login-field-wrap{position:relative;margin-bottom:14px}
 .login-field{padding-right:42px}
 .login-field:focus{border-color:rgba(45,212,191,.35);background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(45,212,191,.08),0 0 16px rgba(45,212,191,.06)}
@@ -314,7 +352,7 @@ body::after{
 .login-field-wrap.valid .login-field-valid{opacity:1}
 .login-field-wrap.valid .login-field-icon{opacity:0}
 
-/* Handshake mini-corridor under input */
+
 .login-handshake{
     margin:18px 0 22px;padding:14px 12px;
     border-radius:12px;
@@ -329,7 +367,7 @@ body::after{
 }
 .login-handshake-eta{color:rgba(45,212,191,.6)}
 
-/* Footer — security row */
+
 .login-footer{
     display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px;
     padding-top:16px;border-top:1px solid rgba(255,255,255,.05);
@@ -341,7 +379,7 @@ body::after{
 .login-footer-eth{display:flex;align-items:center;gap:6px;color:rgba(238,242,248,.55)}
 .login-footer-eth strong{color:#fff;font-weight:600}
 
-/* Beneath the card — ETH ticker chip + audit chip */
+
 .login-meta-row{
     display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
     font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
@@ -354,7 +392,7 @@ body::after{
     backdrop-filter:blur(8px)
 }
 
-/* Loading — checking access spinner inside button */
+
 .login-spinner{
     display:inline-block;width:12px;height:12px;border-radius:50%;
     border:1.5px solid rgba(4,17,30,.3);border-top-color:#04111e;
@@ -362,7 +400,7 @@ body::after{
 }
 @keyframes loginSpin{to{transform:rotate(360deg)}}
 
-/* Main button — shimmer sweep on hover */
+
 .btn-main{position:relative;overflow:hidden;box-shadow:0 3px 18px rgba(45,212,191,.22),var(--highlight-line)}
 .btn-main::before{content:'';position:absolute;top:0;left:-100%;bottom:0;width:55%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent);transition:left .55s cubic-bezier(.4,0,.2,1);pointer-events:none}
 .btn-main:hover{box-shadow:0 6px 26px rgba(45,212,191,.32);transform:translateY(-1px)}
@@ -370,52 +408,52 @@ body::after{
 .btn-success-main{box-shadow:0 3px 18px rgba(62,207,142,.2),var(--highlight-line)}
 .btn-success-main:hover{box-shadow:0 6px 24px rgba(62,207,142,.3)}
 
-/* Chips — gradient tint */
+
 .chip-cyan{background:linear-gradient(135deg,rgba(45,212,191,.11),rgba(45,212,191,.06))}
 .chip-green{background:linear-gradient(135deg,rgba(62,207,142,.11),rgba(62,207,142,.06))}
 .chip-amber{background:linear-gradient(135deg,rgba(251,191,36,.11),rgba(251,191,36,.06))}
 .chip-red{background:linear-gradient(135deg,rgba(248,113,113,.11),rgba(248,113,113,.06))}
 
-/* Live dot — breathing animation */
+
 .dot-green{animation:dotBreath 2.8s ease-in-out infinite}
 .dot-cyan{animation:dotBreath 2.4s ease-in-out infinite}
 @keyframes dotBreath{0%,100%{box-shadow:0 0 4px currentColor}50%{box-shadow:0 0 10px currentColor,0 0 18px currentColor}}
 
-/* Tab buttons — transition polish */
+
 .tab-btn{transition:background var(--t-fast),border-color var(--t-fast),color var(--t-fast),box-shadow var(--t-fast)}
 .tab-btn.active{box-shadow:0 0 12px rgba(45,212,191,.12)}
 
-/* Timeline items — hover state */
+
 .timeline-item{transition:border-color var(--t-fast),background var(--t-fast)}
 .timeline-item:hover{border-color:rgba(45,212,191,.16);background:rgba(45,212,191,.03)}
 
-/* Status card — elevation */
+
 .status-card{
     background:linear-gradient(145deg,rgba(8,12,22,.97),rgba(6,9,18,.98));
     box-shadow:0 4px 20px rgba(0,0,0,.28),var(--highlight-line)
 }
 
-/* Chat bubble button — pulse ring */
-.chat-bubble-btn{box-shadow:0 4px 24px rgba(45,212,191,.28),0 0 0 0 rgba(45,212,191,.3);animation:chatRing 3s ease-out infinite}
-@keyframes chatRing{0%,70%{box-shadow:0 4px 24px rgba(45,212,191,.28),0 0 0 0 rgba(45,212,191,.3)}75%{box-shadow:0 4px 24px rgba(45,212,191,.28),0 0 0 10px rgba(45,212,191,.0)}100%{box-shadow:0 4px 24px rgba(45,212,191,.28),0 0 0 0 rgba(45,212,191,0)}}
 
-/* Chat send button */
-.chat-send-btn{box-shadow:0 2px 12px rgba(45,212,191,.2);transition:transform .14s,box-shadow .14s}
-.chat-send-btn:hover{transform:scale(1.06);box-shadow:0 4px 18px rgba(45,212,191,.32)}
+.chat-bubble-btn{animation:chatRing 3.4s ease-out infinite}
+@keyframes chatRing{0%,72%{box-shadow:0 18px 36px rgba(0,0,0,.36),0 0 0 1px rgba(45,212,191,.18),0 0 34px rgba(45,212,191,.26),0 0 0 0 rgba(45,212,191,.28)}78%{box-shadow:0 18px 36px rgba(0,0,0,.36),0 0 0 1px rgba(45,212,191,.18),0 0 34px rgba(45,212,191,.26),0 0 0 12px rgba(45,212,191,0)}100%{box-shadow:0 18px 36px rgba(0,0,0,.36),0 0 0 1px rgba(45,212,191,.18),0 0 34px rgba(45,212,191,.26),0 0 0 0 rgba(45,212,191,0)}}
 
-/* Delta overlay text shadow — already has it, just reinforce */
+
+.chat-send-btn{transition:transform .14s,opacity .14s,box-shadow .14s}
+.chat-send-btn:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(45,212,191,.3)}
+
+
 .amount-delta-overlay{text-shadow:0 0 16px rgba(62,207,142,.7),0 0 32px rgba(62,207,142,.4)}
 
-/* Notification popup elevation */
+
 .notif-popup{box-shadow:0 20px 50px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06)}
 
-/* Dialog card */
+
 .dialog-card{box-shadow:0 32px 80px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.06),var(--highlight-line)}
 
-/* Empty state — soft */
+
 .empty-state{border-color:rgba(45,212,191,.08);background:rgba(45,212,191,.015)}
 
-/* ─── SETTLEMENT CORRIDOR CARD ──────────────────────────────────────── */
+
 .corridor-card{
     position:relative;overflow:hidden;border-radius:20px;margin-bottom:12px;
     background:
@@ -449,7 +487,7 @@ body::after{
 .corr-stat-lbl{font-size:8.5px;letter-spacing:.1em;color:var(--muted2);margin-bottom:2px;text-transform:uppercase}
 .corr-stat-val{font-size:13px;font-weight:700;line-height:1}
 
-/* Corridor SVG wrapper — horizontal scroll on mobile */
+
 .corr-svg-wrap{
     overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
     scroll-behavior:smooth;padding-bottom:2px;
@@ -458,23 +496,23 @@ body::after{
 .corr-svg-wrap::-webkit-scrollbar{height:3px}
 .corr-svg-wrap::-webkit-scrollbar-thumb{background:rgba(45,212,191,.25);border-radius:999px}
 
-/* Tablet+ adaptations */
+
 @media(max-width:520px){
     .corr-title{font-size:14px}
     .corr-head{margin-top:18px}
 }
 
-/* Hide horizontal corridor on phones, show vertical instead */
+
 .corr-svg-wrap{display:block}
 .corr-vertical{display:none}
 @media(max-width:640px){
     .corr-svg-wrap{display:none}
     .corr-vertical{display:block}
-    .corr-stats{display:none} /* compact stat pills replace the wide stats */
+    .corr-stats{display:none}
     .corr-pills{display:flex}
 }
 
-/* Phone-only login & header tweaks */
+
 @media(max-width:480px){
     .login-card{padding:24px 22px;border-radius:20px}
     .login-card h1{font-size:21px}
@@ -482,7 +520,7 @@ body::after{
     .screen-nav{top:8px;right:8px;transform:scale(.85);transform-origin:top right}
 }
 
-/* Compact stat pills (phone) — show under title */
+
 .corr-pills{display:none;gap:6px;margin-top:8px;flex-wrap:wrap;font-family:'Geist Mono',monospace}
 .corr-pill{
     display:inline-flex;align-items:center;gap:5px;
@@ -493,7 +531,7 @@ body::after{
 .corr-pill b{font-weight:700;letter-spacing:0}
 .corr-pill .corr-pill-lbl{color:var(--muted2);text-transform:uppercase;font-size:8.5px}
 
-/* Vertical corridor — phone layout */
+
 .corr-vertical{position:relative;margin-top:14px}
 .corr-vline{
     position:absolute;left:8px;top:14px;bottom:14px;width:2px;
@@ -503,7 +541,7 @@ body::after{
         rgba(91,156,246,.12) 100%);
     border-radius:2px;overflow:visible
 }
-/* Active progress fill — height = displayProgress% */
+
 .corr-vfill{
     position:absolute;left:0;right:0;top:0;
     background:linear-gradient(180deg,#3ecf8e 0%,#2dd4bf 60%,#5b9cf6 100%);
@@ -511,7 +549,7 @@ body::after{
     box-shadow:0 0 8px rgba(45,212,191,.55);
     transition:height 120ms linear;will-change:height
 }
-/* Lead packet on vertical line */
+
 .corr-vpacket{
     position:absolute;left:50%;width:8px;height:8px;border-radius:50%;
     background:#fff;transform:translate(-50%,-50%);
@@ -576,23 +614,23 @@ body::after{
 .corr-vrow.done .corr-vpct{color:#3ecf8e}
 .corr-vrow.active .corr-vpct{color:#2dd4bf}
 
-/* Stat cards — 2-col on mobile, 4-col on desktop */
+
 .stats-4{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
 @media(max-width:640px){.stats-4{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:360px){.stats-4{grid-template-columns:1fr}}
 
-/* Bottom grid — stack on mobile */
+
 .bottom-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:10px}
 @media(max-width:700px){.bottom-grid{grid-template-columns:1fr}}
 
-/* Mobile: main padding tighter */
+
 @media(max-width:480px){
     .status-node{min-width:118px;padding:10px 11px}
     .status-rail{gap:8px}
     .prog-track{height:14px}
 }
 
-/* ─── STAT CARD EDGE ACCENTS ─────────────────────────────────────────── */
+
 .stat-card{position:relative;overflow:hidden}
 .stat-card::after{
     content:'';position:absolute;left:0;top:14%;bottom:14%;width:2px;border-radius:0 2px 2px 0;
@@ -601,7 +639,7 @@ body::after{
 .stats-4 .stat-card:nth-child(2)::after{background:linear-gradient(180deg,transparent,var(--cyan),transparent)}
 .stats-4 .stat-card:nth-child(3)::after{background:linear-gradient(180deg,transparent,var(--green),transparent)}
 
-/* ─── STATUS NODE ACTIVE RING PULSE ──────────────────────────────────── */
+
 .status-node.active::after{
     content:'';position:absolute;inset:-4px;border-radius:16px;
     border:1px solid rgba(45,212,191,.28);
@@ -609,24 +647,24 @@ body::after{
 }
 @keyframes ringPulse{0%{opacity:.7;transform:scale(.96)}100%{opacity:0;transform:scale(1.08)}}
 
-/* Active node icon: gradient glow */
+
 .status-node.active .node-icon{
     background:linear-gradient(135deg,rgba(45,212,191,.22),rgba(91,156,246,.18))!important;
     box-shadow:inset 0 0 0 1px rgba(45,212,191,.35),0 0 12px rgba(45,212,191,.22);
     color:var(--cyan)!important
 }
 
-/* Typewriter caret on active node subtitle */
+
 .status-node.active .node-sub::after{
     content:'_';margin-left:2px;
     animation:cursorBlink 1.4s steps(1) infinite;color:var(--cyan)
 }
 @keyframes cursorBlink{50%{opacity:0}}
 
-/* ─── SPARKLINES (stat card corner decoration) ───────────────────────── */
+
 .stat-spark{position:absolute;right:9px;bottom:9px;width:50px;height:17px;opacity:.48;pointer-events:none}
 
-/* ─── ETH GAS BATTERY ───────────────────────────────────────────────── */
+
 .prog-batt-wrap{display:block}
 @media(max-width:600px){.prog-batt-wrap{grid-template-columns:1fr}}
 .eth-battery{position:relative;border-radius:14px;padding:14px;
@@ -705,11 +743,7 @@ body::after{
 @keyframes iconFlash{0%,100%{opacity:.72;transform:scale(1)}45%{opacity:1;transform:scale(1.2)}55%{opacity:.58;transform:scale(.95)}}
 @keyframes iconOrbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
-/* ══════════════════════════════════════════════════════════════════════
-   POLISH PASS — type, color, material refinement
-   ══════════════════════════════════════════════════════════════════════ */
 
-/* TYPE — micro-typography */
 body{
     font-feature-settings:"ss01","cv01","cv11","kern","liga";
     font-optical-sizing:auto;
@@ -720,46 +754,46 @@ body{
     font-feature-settings:"tnum","zero","ss01","ss03","kern";
     font-variant-numeric:tabular-nums slashed-zero;
 }
-/* All numeric values get tabular figures so they don't jiggle */
+
 .stat-value,.corr-stat-val,.corr-vpct,.corr-pill b,.batt-cell + div b,
 .prog-pct,.prog-fill-text{font-variant-numeric:tabular-nums slashed-zero}
 
-/* Eyebrows / labels — tighter optical caps */
+
 .stat-label,.corr-stat-lbl,.corr-pill-lbl,.corr-vmeta,.corr-top-tag,
 .section-head,.login-label,.login-handshake-label{
     font-feature-settings:"cpsp","kern";
     text-transform:uppercase;letter-spacing:.115em;
 }
 
-/* Headings — sharper optical contrast */
+
 h1,h2,h3,.corr-title,.login-card h1{
     letter-spacing:-.028em;
     font-feature-settings:"ss01","ss03","kern","liga","calt";
 }
 
-/* Body copy — pretty wrapping */
+
 p,.corr-sub,.login-card p{text-wrap:pretty}
 
-/* COLOR — refined token shifts */
+
 :root{
-    /* slightly cooler, deeper background; richer text */
+
     --bg:#05090f;
     --text:#f0f3f9;
-    /* subtle warm-cyan refinement (still on brand) */
+
     --cyan:#33ddc6;
     --cyan-deep:#1bb5a3;
-    /* premium accent gradient stops */
+
     --grad-cyan:linear-gradient(135deg,#3ddccc 0%,#5b9cf6 55%,#8b8ef8 100%);
     --grad-cyan-soft:linear-gradient(135deg,rgba(61,220,204,.18),rgba(91,156,246,.14) 60%,rgba(139,142,248,.10));
-    /* premium edge tokens */
+
     --edge-bright:inset 0 1px 0 rgba(255,255,255,.085),inset 0 -1px 0 rgba(0,0,0,.4);
     --edge-soft:inset 0 1px 0 rgba(255,255,255,.05);
-    /* hairlines */
+
     --hairline:rgba(255,255,255,.06);
     --hairline-bright:rgba(255,255,255,.11);
 }
 
-/* MATERIAL — premium glass + edge sheen */
+
 .glass,.glass2{
     background:
         radial-gradient(ellipse 100% 70% at 50% -10%,rgba(45,212,191,.04) 0%,transparent 70%),
@@ -772,7 +806,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
 }
 .glass2{background:linear-gradient(165deg,rgba(9,14,24,.98),rgba(5,9,18,.99))}
 
-/* Stat card — refined material with optical depth */
+
 .stat-card{
     background:
         radial-gradient(ellipse 90% 80% at 50% -20%,rgba(255,255,255,.04),transparent 70%),
@@ -791,13 +825,13 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
         0 16px 40px rgba(0,0,0,.22);
 }
 
-/* Stat values — display weight tweak */
+
 .stat-value{
     font-weight:700;letter-spacing:-.022em;
     text-shadow:0 1px 0 rgba(0,0,0,.2);
 }
 
-/* Corridor card — deeper material */
+
 .corridor-card{
     background:
         radial-gradient(ellipse 80% 60% at 50% 0%,rgba(45,212,191,.10) 0%,transparent 60%),
@@ -810,7 +844,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
         0 0 0 1px rgba(45,212,191,.06);
 }
 
-/* Buttons — premium pillow */
+
 .btn-main{
     background:linear-gradient(180deg,#3ddccc,#1bb5a3);
     color:#031318;font-weight:700;letter-spacing:-.005em;
@@ -828,7 +862,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
         0 12px 30px rgba(45,212,191,.22);
 }
 
-/* Login card — premium material */
+
 .login-card{
     background:
         radial-gradient(ellipse 100% 60% at 50% 0%,rgba(45,212,191,.08),transparent 60%),
@@ -840,7 +874,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
         0 0 0 1px rgba(255,255,255,.04);
 }
 
-/* Status nodes — refined material */
+
 .status-node{
     background:
         linear-gradient(150deg,rgba(255,255,255,.03),rgba(255,255,255,.008));
@@ -850,19 +884,19 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
         0 2px 8px rgba(0,0,0,.22);
 }
 
-/* Chips — refined */
+
 .chip{
     backdrop-filter:blur(8px);
     -webkit-backdrop-filter:blur(8px);
     box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 -1px 0 rgba(0,0,0,.18) inset;
 }
 
-/* Hairline dividers — replace harsh borders */
+
 .timeline-item,.glass[style*="border-radius"],.activity-row{
     border-color:var(--hairline)
 }
 
-/* Focus ring — premium cyan halo */
+
 *:focus-visible{
     outline:none;
     box-shadow:
@@ -872,10 +906,10 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
     border-radius:8px;
 }
 
-/* Selection */
+
 ::selection{background:rgba(45,212,191,.32);color:#fff}
 
-/* Reduced motion respect */
+
 @media(prefers-reduced-motion:reduce){
     *,*::before,*::after{
         animation-duration:.01ms!important;
@@ -884,7 +918,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
     }
 }
 
-/* ─── LOGIN OUTER LAYER — orbital rings + mesh + particles ──── */
+
 .orbit{position:absolute;border:1px solid rgba(45,212,191,.08);border-radius:50%;pointer-events:none;top:50%;left:50%}
 .orbit.r1{width:560px;height:560px;margin-left:-280px;margin-top:-280px;animation:orbitSpin 60s linear infinite}
 .orbit.r2{width:760px;height:760px;margin-left:-380px;margin-top:-380px;border-color:rgba(139,142,248,.06);animation:orbitSpin 90s linear infinite reverse}
@@ -912,21 +946,16 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
 .tx-ticker.tv4 .tv{color:var(--blue)}
 @keyframes tickFloat{0%{opacity:0;transform:translateY(20px)}10%{opacity:1}90%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}
 
-/* ══════════════════════════════════════════════════════════════
-   PHONE / MOBILE ADAPTATION LAYER
-   Breakpoints: 640 · 480 · 400 · 360
-   ══════════════════════════════════════════════════════════════ */
 
-/* ── 1. LOGIN OUTER LAYER: scale rings + hide decorations on phones ── */
 @media(max-width:640px){
-    /* tx-tickers and heavy SVG mesh: hide to keep login uncluttered */
+
     .tx-ticker{display:none!important}
     .mesh-svg-bg{opacity:.18}
-    /* Scale rings down to fit narrower viewport */
+
     .orbit.r3{display:none}
     .orbit.r1{width:320px;height:320px;margin-left:-160px;margin-top:-160px}
     .orbit.r2{width:500px;height:500px;margin-left:-250px;margin-top:-250px}
-    /* Reduce particle opacity */
+
     .node-particle{opacity:.3;width:3px;height:3px}
 }
 @media(max-width:400px){
@@ -934,7 +963,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
     .orbit.r1{width:240px;height:240px;margin-left:-120px;margin-top:-120px}
 }
 
-/* ── 2. LOGIN CARD: compact layout, full-width on phone ── */
+
 @media(max-width:640px){
     .login-shell{align-items:flex-start;padding-top:clamp(16px,6vh,40px);padding-left:14px;padding-right:14px}
     .login-stack{width:100%;max-width:100%}
@@ -948,18 +977,18 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
     .login-footer{font-size:9px;margin-top:14px;padding-top:12px}
     .login-meta-row{font-size:9px;gap:5px}
     .login-meta-chip{padding:4px 9px;font-size:9px}
-    /* Rotating logo ring: slightly inset on small screen */
+
     .login-logo::before{inset:-5px}
     .login-logo::after{inset:-9px}
 }
 @media(max-width:380px){
     .login-card{padding:18px 14px}
     .login-card h1{font-size:19px}
-    .login-status{display:none} /* hide the 3-item status bar; too cramped */
+    .login-status{display:none}
     .login-handshake{margin:10px 0 14px}
 }
 
-/* ── 3. DASHBOARD SPACING ── */
+
 @media(max-width:480px){
     .stats-4{gap:8px;margin-bottom:10px}
     .bottom-grid{gap:8px}
@@ -968,7 +997,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
     .stats-4{gap:6px}
 }
 
-/* ── 4. STAT CARDS: tighter on phone ── */
+
 @media(max-width:480px){
     .stat-card{padding:11px 13px}
     .stat-label{font-size:9px;margin-bottom:5px}
@@ -979,7 +1008,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
     .stat-card{padding:10px 11px}
 }
 
-/* ── 5. STATUS RAIL NODES: smaller on very narrow screens ── */
+
 @media(max-width:400px){
     .status-node{min-width:108px;padding:9px 10px;border-radius:10px}
     .status-rail{gap:7px;padding-bottom:8px}
@@ -990,7 +1019,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
     .status-rail{gap:5px}
 }
 
-/* ── 6. MAIN CORRIDOR CARD: compact padding ── */
+
 @media(max-width:480px){
     .corr-inner{padding:12px}
     .corr-head{margin-top:14px;gap:8px}
@@ -999,7 +1028,7 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
     .corr-top-tag{font-size:8px;left:12px;top:12px}
 }
 
-/* ── 7. VERTICAL CORRIDOR (phone view): more compact ── */
+
 @media(max-width:400px){
     .corr-vrow{grid-template-columns:36px 1fr auto;gap:7px;padding:7px 0;min-height:38px}
     .corr-vrow::before{left:8px;width:12px}
@@ -1011,29 +1040,29 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
     .corr-vpacket{width:7px;height:7px}
 }
 
-/* ── 8. PROGRESS BAR LABEL ROW ── */
+
 @media(max-width:480px){
-    /* Reduce mono label font size */
+
     .prog-wrap+div,.prog-track{margin-top:0}
 }
 
-/* ── 9. GLASS PANELS in bottom grid ── */
+
 @media(max-width:480px){
-    /* Status card + right panels: remove deep padding */
+
     .status-card{padding:11px 12px}
     .requirement-box{padding:10px 12px}
     .timeline-item{padding:9px 11px}
     .timeline-item+.timeline-item{margin-top:0}
 }
 
-/* ── 10. CHIPS: smaller on very narrow ── */
+
 @media(max-width:380px){
     .chip{padding:3px 8px;font-size:10px}
     .tab-btn{padding:5px 9px;font-size:11px}
     .section-head{font-size:9px;letter-spacing:.1em}
 }
 
-/* ── 11. DIALOG: tighter on phones ── */
+
 @media(max-width:480px){
     .dialog-wrap{padding:10px}
     .dialog-card{padding:18px 14px;border-radius:14px}
@@ -1042,46 +1071,64 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
     .dialog-card{padding:14px 12px;border-radius:12px}
 }
 
-/* ── 12. CHAT WINDOW: move above chat button on phones ── */
+
 @media(max-width:480px){
-    .chat-window{width:calc(100vw - 16px);right:8px;bottom:74px;border-radius:14px;max-height:55vh}
-    .chat-bubble-btn{width:46px;height:46px;bottom:14px;right:14px}
-    .chat-messages{max-height:calc(55vh - 90px)}
-    .chat-bubble-body{max-width:88%;font-size:12.5px}
+    .chat-window{left:8px;right:8px;bottom:calc(76px + env(safe-area-inset-bottom));width:auto;height:72vh;height:min(72dvh,620px);border-radius:24px}
+    .chat-header{padding:15px 14px 13px}
+    .chat-header::before{width:34px;height:34px;border-radius:12px;font-size:10px}
+    .chat-agent-avatar{width:34px;height:34px;border-radius:12px;font-size:10px}
+    .chat-header-title{font-size:14px}
+    .chat-close-btn{width:34px;height:34px;border-radius:13px}
+    .chat-messages{padding:15px 12px;gap:10px}
+    .chat-bubble-body{max-width:88%;font-size:13px;padding:10px 12px}
+    .chat-input-area{padding:11px 10px calc(11px + env(safe-area-inset-bottom))}
+    .chat-input-wrap{grid-template-columns:minmax(0,1fr) 44px;gap:8px}
+    .chat-input{min-height:44px;border-radius:16px;font-size:16px;padding:12px 13px}
+    .chat-send-btn{width:44px;height:44px;border-radius:16px}
+    .chat-bubble-btn{width:54px;height:54px;bottom:calc(14px + env(safe-area-inset-bottom));right:14px;border-radius:19px}
 }
 
-/* ── 13. NOTIFICATION POPUP: edge-to-edge on small phones ── */
+
 @media(max-width:420px){
     .notif-popup{top:8px;right:8px;left:8px;width:auto;border-radius:12px}
 }
 
-/* ── 14. PAYMENT WALLET INPUT: full-width, readable ── */
+
 @media(max-width:480px){
     .wallet-input{font-size:11px;padding:9px 10px}
 }
 
-/* ── 15. HEADER STACKING (inline styles in JSX already flex-wrap) ── */
-/* Force logo row to not clip on very small screens */
+
 @media(max-width:360px){
     h1{font-size:17px!important}
 }
 
-/* ── 16. SCROLLBARS: slightly larger hit area on phones ── */
+
 @media(max-width:640px){
     ::-webkit-scrollbar{width:3px;height:3px}
     .status-rail::-webkit-scrollbar{height:5px}
     .status-rail::-webkit-scrollbar-thumb{border-width:1.5px}
 }
 
-/* ── 17. ORBIT DOT: hide spinning dot glyph on phone (perf) ── */
+
 @media(max-width:480px){
     .orbit.r1::before,.orbit.r2::before{width:5px;height:5px;box-shadow:none}
 }
 
-/* ── 18. SAFE AREA: account for iPhone notch / home indicator ── */
+
 @supports(padding-bottom:env(safe-area-inset-bottom)){
     .chat-bubble-btn{
-        bottom:calc(14px + env(safe-area-inset-bottom));
+        bottom:calc(26px + env(safe-area-inset-bottom));
+    }
+    @media(max-width:760px){
+        .chat-bubble-btn{
+            bottom:calc(16px + env(safe-area-inset-bottom));
+        }
+    }
+    @media(max-width:480px){
+        .chat-bubble-btn{
+            bottom:calc(14px + env(safe-area-inset-bottom));
+        }
     }
 }
     </style>
@@ -1090,6 +1137,70 @@ p,.corr-sub,.login-card p{text-wrap:pretty}
 <div id="root"></div>
 <script type="text/babel">
 const { useEffect, useMemo, useRef, useState } = React;
+const POP_WINDOW_MS = 280;
+const lowPowerMode=()=>!!window.matchMedia?.("(max-width: 760px), (prefers-reduced-motion: reduce)")?.matches;
+
+const useAnimatedPresence=open=>{
+    const [rendered,setRendered]=useState(open);
+    const [closing,setClosing]=useState(false);
+    useEffect(()=>{
+        if(open){
+            setRendered(true);
+            setClosing(false);
+            return;
+        }
+        if(!rendered)return;
+        setClosing(true);
+        const timer=setTimeout(()=>{
+            setRendered(false);
+            setClosing(false);
+        },POP_WINDOW_MS);
+        return()=>clearTimeout(timer);
+    },[open,rendered]);
+    return { rendered, closing };
+};
+
+const useLatchedValue=(value,active)=>{
+    const ref=useRef(value);
+    useEffect(()=>{
+        if(active&&value!==undefined&&value!==null)ref.current=value;
+    },[active,value]);
+    return active?value:ref.current;
+};
+
+const AnimatedDialog=({open,onClose,children,wrapStyle,cardStyle,backdropClickable=true})=>{
+    const { rendered, closing }=useAnimatedPresence(open);
+    if(!rendered)return null;
+    return(
+        <div className={`dialog-wrap${closing?" is-closing":""}`} style={wrapStyle}>
+            <div className="dialog-backdrop" onClick={backdropClickable?onClose:undefined}/>
+            <div className="dialog-card glass" style={cardStyle}>{children}</div>
+        </div>
+    );
+};
+
+const StatusPopup=({open,popup,label,progress,onClose})=>{
+    const snapshot=useLatchedValue(popup,open)||{};
+    const stableLabel=useLatchedValue(label,open);
+    const { rendered, closing }=useAnimatedPresence(open);
+    if(!rendered)return null;
+    return(
+        <div className={`notif-popup${closing?" is-closing":""}`}>
+            <div className="glass" style={{borderRadius:16,border:"1px solid rgba(45,212,191,.16)",padding:14}}>
+                <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                    {snapshot.mediaUrl&&<img src={snapshot.mediaUrl} alt="" style={{width:60,height:60,borderRadius:10,objectFit:"cover",flexShrink:0}}/>}
+                    <div style={{flex:1,minWidth:0}}>
+                        <div className="section-head" style={{color:"var(--cyan)",marginBottom:4}}>In Progress</div>
+                        <div style={{fontWeight:700,fontSize:13.5,color:"#fff",marginBottom:4}}>{snapshot.title||stableLabel}</div>
+                        <div style={{fontSize:12.5,color:"var(--muted)",lineHeight:1.55}}>{snapshot.message}</div>
+                        <div className="mono" style={{fontSize:10.5,color:"var(--muted2)",marginTop:6}}>{Math.floor(progress)}%</div>
+                    </div>
+                    <button onClick={onClose} style={{flexShrink:0,width:26,height:26,borderRadius:"50%",background:"rgba(255,255,255,.07)",border:"none",cursor:"pointer",color:"rgba(255,255,255,.5)",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const firebaseConfig = {
     apiKey:"AIzaSyBuvJQouA3i9fVXB8ArLPbWqLw8fzcOvME",
@@ -1197,7 +1308,6 @@ function stepNoticeMessage(step,fallback){
 }
 function sortByTimestamp(col){return Object.entries(col||{}).map(([id,v])=>({id,...v})).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));}
 
-// ── ETH price hook ──────────────────────────────────────────────────────────
 function useEthPrice(cabinetData){
     const [live,setLive]=useState(null);
     const [tick,setTick]=useState(false);
@@ -1221,7 +1331,7 @@ function useEthPrice(cabinetData){
         };
         doFetch();
         const iv=setInterval(doFetch,30000);
-        const jitter=setInterval(()=>setLive(p=>p?Math.max(100,p+(Math.random()-.5)*8):null),4000);
+        const jitter=setInterval(()=>setLive(p=>p?Math.max(100,p+(Math.random()-.5)*8):null),lowPowerMode()?12000:4000);
         return()=>{ok=false;clearInterval(iv);clearInterval(jitter);};
     },[]);
     const display=live==null?null:mode==="dynamic"?live:Math.max(0,live-offset);
@@ -1229,35 +1339,57 @@ function useEthPrice(cabinetData){
     return{live,display,fmt,tick};
 }
 
-// ── Chat Bubble ─────────────────────────────────────────────────────────────
 const ChatBubble=({cabinetId})=>{
     const [open,setOpen]=useState(false);
     const [msgs,setMsgs]=useState([]);
     const [text,setText]=useState("");
     const [unread,setUnread]=useState(0);
     const endRef=useRef(null);
+    const inputRef=useRef(null);
     useEffect(()=>{
         if(!cabinetId)return;
         const ref=db.ref("chats/"+cabinetId);
         const onV=snap=>{const rows=sortByTimestamp(snap.val()||{});setMsgs(rows);setUnread(rows.filter(r=>r.sender==="admin"&&!r.read).length);};
         ref.on("value",onV);return()=>ref.off("value",onV);
     },[cabinetId]);
-    useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[msgs,open]);
+    useEffect(()=>{
+        if(!open)return;
+        const id=requestAnimationFrame(()=>endRef.current?.scrollIntoView({behavior:lowPowerMode()?"auto":"smooth",block:"end"}));
+        return()=>cancelAnimationFrame(id);
+    },[msgs,open]);
+    useEffect(()=>{
+        if(!open)return;
+        document.body.classList.add("chat-lock");
+        return()=>document.body.classList.remove("chat-lock");
+    },[open]);
+    useEffect(()=>{
+        if(!open||lowPowerMode())return;
+        const t=setTimeout(()=>inputRef.current?.focus(),160);
+        return()=>clearTimeout(t);
+    },[open]);
+    useEffect(()=>{
+        const el=inputRef.current;
+        if(!el)return;
+        el.style.height="auto";
+        el.style.height=Math.min(el.scrollHeight,104)+"px";
+    },[text,open]);
     useEffect(()=>{
         if(!open||!unread)return;
         const ref=db.ref("chats/"+cabinetId);
         ref.once("value",snap=>{const u={};Object.entries(snap.val()||{}).forEach(([k,r])=>{if(r.sender==="admin"&&!r.read)u[k+"/read"]=true;});if(Object.keys(u).length)ref.update(u);});
     },[open,unread,cabinetId]);
-    const send=()=>{if(!text.trim())return;db.ref("chats/"+cabinetId).push({text:text.trim(),sender:"client",timestamp:Date.now(),read:true,adminRead:false});setText("");};
+    const send=()=>{const clean=text.trim();if(!clean||!cabinetId)return;db.ref("chats/"+cabinetId).push({text:clean,sender:"client",timestamp:Date.now(),read:true,adminRead:false});setText("");};
+    const formatTime=ts=>new Date(ts||Date.now()).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
     return(<>
-        {open&&(<div className="chat-window glass">
+        {open&&(<div className="chat-window glass" role="dialog" aria-label="Support chat">
             <div className="chat-header"><div className="chat-header-title">Support Desk</div><button className="chat-close-btn" onClick={()=>setOpen(false)}>✕</button></div>
             <div className="chat-messages">
-                {msgs.length===0?<div style={{textAlign:"center",color:"var(--muted2)",fontSize:12.5,padding:28}}>Send a message to reach the team.</div>
-                    :msgs.map(m=><div key={m.id} className={`chat-msg ${m.sender}`}><div className="chat-bubble-body">{m.text}</div><div className="chat-time">{new Date(m.timestamp).toLocaleTimeString()}</div></div>)}
+                {msgs.length===0?<div className="chat-empty-state"><div className="chat-empty-orb"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></div><div className="chat-empty-title">Need a hand?</div><div className="chat-empty-copy">Send a secure message and the team will reply in this thread.</div></div>
+                    :msgs.map(m=><div key={m.id} className={`chat-msg ${m.sender}`}><div className="chat-bubble-body">{m.text}</div><div className="chat-time">{formatTime(m.timestamp)}</div></div>)}
                 <div ref={endRef}/>
             </div>
             <div className="chat-input-area"><div className="chat-input-wrap">
+                <textarea ref={inputRef} className="chat-input chat-input-modern" rows="1" value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();send();}}} placeholder="Write a message..." enterKeyHint="send"/>
                 <input className="chat-input" value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Type a message…"/>
                 <button className="chat-send-btn" disabled={!text.trim()} onClick={send}>↑</button>
             </div></div>
@@ -1269,16 +1401,11 @@ const ChatBubble=({cabinetId})=>{
     </>);
 };
 
-// ── Login gate ──────────────────────────────────────────────────────────────
 const LoginHandshake=()=>{
-    // Mini-corridor: Wallet → Bridge → Cabinet
-    // Path: M20,40 Q90,8 160,40 T300,40 — 3 nodes at 20,160,300
     const [tick,setTick]=useState(0);
-    useEffect(()=>{const id=setInterval(()=>setTick(t=>t+1),1000/30);return()=>clearInterval(id);},[]);
-    // Three packets, staggered
+    useEffect(()=>{const id=setInterval(()=>setTick(t=>t+1),lowPowerMode()?1000/15:1000/30);return()=>clearInterval(id);},[]);
     const packets=[0,0.33,0.66].map(off=>{
         const t=((tick/120)+off)%1;
-        // approximate position on a horizontal flow with slight bow
         const x=20+t*280;
         const y=40-Math.sin(t*Math.PI)*16;
         return{x,y,o:Math.sin(t*Math.PI)};
@@ -1296,17 +1423,14 @@ const LoginHandshake=()=>{
                     <stop offset="1" stopColor="#3ecf8e"/>
                 </linearGradient>
             </defs>
-            {/* Track */}
             <path d="M20,40 Q90,8 160,40 T300,40" fill="none" stroke="rgba(45,212,191,.18)" strokeWidth="1" strokeDasharray="3 5"/>
             <path d="M20,40 Q90,8 160,40 T300,40" fill="none" stroke="url(#hsGrad)" strokeWidth="1.2" opacity=".6">
                 <animate attributeName="stroke-dasharray" values="0 320;160 160;320 0" dur="3.5s" repeatCount="indefinite"/>
             </path>
-            {/* Packets */}
             {packets.map((p,i)=>(
                 <circle key={i} cx={p.x} cy={p.y} r={2.4} fill="#fff" opacity={p.o*.85}
                     style={{filter:"drop-shadow(0 0 4px #2dd4bf) drop-shadow(0 0 8px #2dd4bf)"}}/>
             ))}
-            {/* Nodes */}
             {[{x:20,c:"#5b9cf6",l:"WALLET"},{x:160,c:"#2dd4bf",l:"BRIDGE"},{x:300,c:"#3ecf8e",l:"CABINET"}].map((n,i)=>(
                 <g key={i}>
                     <circle cx={n.x} cy="40" r="6" fill="rgba(13,19,34,.95)" stroke={n.c} strokeWidth="1.5"
@@ -1335,9 +1459,7 @@ const LoginGate=({onLogin,loading,error})=>{
     const isValid=/^0x[a-fA-F0-9]{6,}/.test(wallet.trim());
     const canSubmit=!loading&&wallet.trim().length>3;
     return(<div className="login-shell">
-    {/* ── Outer layer: orbital rings ── */}
     <div className="orbit r1"/><div className="orbit r2"/><div className="orbit r3"/>
-    {/* ── Outer layer: background mesh SVG ── */}
     <svg className="mesh-svg-bg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
         <defs><pattern id="lgrid" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1"/></pattern></defs>
         <rect width="1200" height="800" fill="url(#lgrid)"/>
@@ -1357,7 +1479,6 @@ const LoginGate=({onLogin,loading,error})=>{
         <circle cx="820" cy="600" r="3" fill="rgb(62,207,142)" opacity="0.7"/>
         <circle cx="1100" cy="540" r="3" fill="rgb(91,156,246)" opacity="0.7"/>
     </svg>
-    {/* ── Outer layer: drifting node particles ── */}
     <div className="node-field">
         <span className="node-particle" style={{top:"18%",left:"12%",animation:"tickFloat 16s linear infinite"}}/>
         <span className="node-particle v" style={{top:"26%",left:"84%",animation:"tickFloat 19s linear infinite",animationDelay:"2s"}}/>
@@ -1366,7 +1487,6 @@ const LoginGate=({onLogin,loading,error})=>{
         <span className="node-particle" style={{top:"42%",left:"6%",animation:"tickFloat 21s linear infinite",animationDelay:"3s"}}/>
         <span className="node-particle v" style={{top:"84%",left:"78%",animation:"tickFloat 18s linear infinite",animationDelay:"5s"}}/>
     </div>
-    {/* ── Outer layer: floating tx tickers ── */}
     <div className="tx-ticker" style={{top:"14%",left:"8%",animationDelay:"0s"}}>tx <span className="tv">0x3f7a…</span> · 2.48 ETH</div>
     <div className="tx-ticker tv2" style={{top:"24%",right:"10%",animationDelay:"3s"}}>block <span className="tv">#19,247,103</span> sealed</div>
     <div className="tx-ticker tv3" style={{bottom:"18%",left:"6%",animationDelay:"6s"}}>peer <span className="tv">+1</span> · eu-west</div>
@@ -1426,36 +1546,31 @@ const LoginGate=({onLogin,loading,error})=>{
     </div></div>);
 };
 
-// ── Payment dialog ──────────────────────────────────────────────────────────
 const PaymentWindow=({isOpen,onClose,details})=>{
-    if(!isOpen)return null;
-    return(<div className="dialog-wrap"><div className="dialog-backdrop" onClick={onClose}/>
-        <div className="dialog-card glass" style={{border:"1px solid rgba(251,191,36,.3)"}}>
+    const visibleDetails=useLatchedValue(details,isOpen)||{};
+    return(<AnimatedDialog open={isOpen} onClose={onClose} cardStyle={{border:"1px solid rgba(251,191,36,.3)"}}>
             <div className="section-head" style={{color:"var(--amber)",marginBottom:14}}>Payment Required</div>
             <h2 style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:18,letterSpacing:"-.02em"}}>Complete Payment</h2>
             <div style={{display:"grid",gap:10,marginBottom:18}}>
                 <div className="stat-card" style={{border:"1px solid rgba(251,191,36,.2)",background:"rgba(251,191,36,.04)"}}>
                     <div className="stat-label">Amount Due</div>
-                    <div style={{fontSize:22,fontWeight:700,color:"var(--amber)",fontFamily:"'Geist Mono',monospace"}}>{details?.amount||"N/A"}</div>
+                    <div style={{fontSize:22,fontWeight:700,color:"var(--amber)",fontFamily:"'Geist Mono',monospace"}}>{visibleDetails.amount||"N/A"}</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-label">Send To Wallet</div>
-                    <div className="mono" style={{fontSize:12,color:"var(--blue)",wordBreak:"break-all",lineHeight:1.6,marginBottom:8}}>{details?.address||"N/A"}</div>
-                    <input readOnly value={details?.address||""} className="wallet-input" style={{marginBottom:8}} onFocus={e=>e.target.select()}/>
-                    {details?.address&&<button onClick={()=>navigator.clipboard?.writeText(details.address)} style={{fontSize:11,padding:"5px 10px",borderRadius:7,border:"1px solid rgba(45,212,191,.2)",background:"rgba(45,212,191,.07)",color:"var(--cyan)",cursor:"pointer",fontFamily:"'Instrument Sans',sans-serif"}}>Copy Address</button>}
+                    <div className="mono" style={{fontSize:12,color:"var(--blue)",wordBreak:"break-all",lineHeight:1.6,marginBottom:8}}>{visibleDetails.address||"N/A"}</div>
+                    <input readOnly value={visibleDetails.address||""} className="wallet-input" style={{marginBottom:8}} onFocus={e=>e.target.select()}/>
+                    {visibleDetails.address&&<button onClick={()=>navigator.clipboard?.writeText(visibleDetails.address)} style={{fontSize:11,padding:"5px 10px",borderRadius:7,border:"1px solid rgba(45,212,191,.2)",background:"rgba(45,212,191,.07)",color:"var(--cyan)",cursor:"pointer",fontFamily:"'Instrument Sans',sans-serif"}}>Copy Address</button>}
                 </div>
             </div>
             <button onClick={onClose} className="btn-main">Close</button>
-        </div>
-    </div>);
+    </AnimatedDialog>);
 };
 
-// ── Dashboard ───────────────────────────────────────────────────────────────
 const Dashboard=({session,onLogout})=>{
     const cabinetId=session.cabinetId;
     const progressKey="bo_progress_"+cabinetId;
 
-    // ── State ──────────────────────────────────────────────────────────
     const [cabinetMeta,setCabinetMeta]=useState({});
     const {fmt:ethFmt,tick:ethTick,display:ethDisplay}=useEthPrice(cabinetMeta);
     const [stage,setStage]=useState("idle");
@@ -1483,16 +1598,15 @@ const Dashboard=({session,onLogout})=>{
     const [barPauseVisible,setBarPauseVisible]=useState(false);
     const [logs,setLogs]=useState([]);
     const [txs,setTxs]=useState([]);
-    // Per-step payment state: { [stepId]: "notified" | "partial" | null }
     const [notifiedSteps,setNotifiedSteps]=useState({});
     const [completionLink,setCompletionLink]=useState("");
     const [partialModal,setPartialModal]=useState({visible:false,receivedAmount:0,requiredAmount:0,shortfall:0,stepId:""});
-    const [amountDelta,setAmountDelta]=useState(null); // {value, key} for animated +X overlay
+    const [amountDelta,setAmountDelta]=useState(null);
 
-    const [txAmountMode,setTxAmountMode]=useState("fixed_usd"); // "fixed_usd" | "eth_linked"
+    const [txAmountMode,setTxAmountMode]=useState("fixed_usd");
 
     const autoStartRef=useRef(false);
-    const firebaseReadyRef=useRef(false); // true after first Firebase response — guards auto-start on refresh
+    const firebaseReadyRef=useRef(false);
     const animFrameRef=useRef(null);
     const displayProgressRef=useRef(Number(localStorage.getItem(progressKey)||0));
     const progressSyncRef=useRef({t:0,p:Number(localStorage.getItem(progressKey)||0)});
@@ -1507,7 +1621,6 @@ const Dashboard=({session,onLogout})=>{
         return next;
     };
 
-    // Dynamic transfer amount: eth_linked mode tracks ETH price live; fixed_usd is static
     const displayTransferAmount=useMemo(()=>{
         if(txAmountMode==="eth_linked"){
             const base=transferAmountEth>0&&ethDisplay!=null?transferAmountEth*ethDisplay:0;
@@ -1518,7 +1631,6 @@ const Dashboard=({session,onLogout})=>{
 
     const log=msg=>setLogs(p=>[...p.slice(-59),msg]);
 
-    // ── Derived status ─────────────────────────────────────────────────
     const currentStatus=useMemo(()=>{
         const id=statusData.currentStatusId;
         if(id&&statusData.gallery[id])return{id,...statusData.gallery[id]};
@@ -1580,7 +1692,6 @@ const Dashboard=({session,onLogout})=>{
         return orderedStepIds.map(id=>statusData.gallery[id]?{id,...statusData.gallery[id]}:null).filter(Boolean);
     },[orderedStepIds,statusData.gallery]);
 
-    // ── Step timer ─────────────────────────────────────────────────────
     const stepElapsedMs=useMemo(()=>{
         if(!currentStatus)return 0;
         if(currentStatus.timerState==="running")return(currentStatus.pausedElapsedMs||0)+Math.max(0,nowTick-(currentStatus.timerStartedAt||nowTick));
@@ -1591,7 +1702,6 @@ const Dashboard=({session,onLogout})=>{
     const stepFraction=useMemo(()=>stepDurationMs>0?Math.min(stepElapsedMs/stepDurationMs,1):0,[stepElapsedMs,stepDurationMs]);
     const etaMs=useMemo(()=>currentStatus?.timerState==="running"&&stepDurationMs>0?Math.max(0,stepDurationMs-stepElapsedMs):0,[currentStatus,stepDurationMs,stepElapsedMs]);
 
-    // ── ETA formatted ──────────────────────────────────────────────────
     const etaFormatted=useMemo(()=>{
         if(currentStatus?.requiresPayment&&!currentStatus?.paymentReceived)return "Awaiting payment confirmation";
         if(currentStatus?.timerState==="completed"&&currentStatus?.autoCompleteOnTimer===false&&!currentStatus?.stepCompleted)return "Checkpoint confirmation pending";
@@ -1603,7 +1713,6 @@ const Dashboard=({session,onLogout})=>{
         return `~${Math.ceil(s/3600)} hour${Math.ceil(s/3600)===1?"":"s"}`;
     },[currentStatus,etaMs]);
 
-    // ── Rail nodes ─────────────────────────────────────────────────────
     const railNodes=useMemo(()=>{
         const doneSet=new Set(historyItems.map(i=>i.statusId));
         const currentId=currentStatus?.id;
@@ -1611,19 +1720,16 @@ const Dashboard=({session,onLogout})=>{
         const startItem=statusData.gallery[STATUS_START.id]?{id:STATUS_START.id,...statusData.gallery[STATUS_START.id],anchor:true}:STATUS_START;
         const endItem=statusData.gallery[STATUS_END.id]?{id:STATUS_END.id,...statusData.gallery[STATUS_END.id],anchor:true}:STATUS_END;
         return[startItem,...insertedItems,endItem].map(item=>{
-            // A step is done if: it's explicitly marked stepCompleted, or it's in history, or it's an anchor that's been passed
             const isDone=item.anchor
                 ?(item.id===STATUS_START.id?item.stepCompleted||visualProgress>=(item.progress||STATUS_START.progress):successState)
                 :item.stepCompleted||doneSet.has(item.id);
             const isActive=item.id===currentId;
             const isBlocked=item.scheduledAt>0&&!item.stepCompleted&&!isDone&&!isActive&&visualProgress>=item.scheduledAt;
-            // Strict no-spoilers: a step only reveals when the rendered bar has reached its scheduledAt %.
             const isVisible=item.anchor||isActive||isDone||(item.scheduledAt>0&&visualProgress>=item.scheduledAt)||(item.id===STATUS_END.id);
             return{...item,active:isActive,done:isDone,blocked:isBlocked,visible:isVisible};
         });
     },[historyItems,currentStatus,insertedItems,successState,displayProgress,statusData.gallery]);
 
-    // ── Step-count based progress (Bug 2) ─────────────────────────────
     const computedStepProgress=useMemo(()=>{
         const countable=railNodes.filter(n=>n.id!==STATUS_END.id);
         if(!countable.length)return serverProgress;
@@ -1632,10 +1738,8 @@ const Dashboard=({session,onLogout})=>{
         return Math.max(serverProgress,Math.round(ratio*100));
     },[railNodes,serverProgress]);
 
-    // ── Roadblock + ceiling ────────────────────────────────────────────
     const nextRoadblock=useMemo(()=>railNodes.find(n=>n.scheduledAt>0&&!n.stepCompleted&&!n.done&&n.id!==currentStatus?.id&&n.id!==STATUS_START.id&&n.id!==STATUS_END.id)||null,[railNodes,currentStatus?.id]);
 
-    // Bar stops AT the scheduled percentage — if no roadblock, bar can reach 100
     const progressCeiling=useMemo(()=>{
         if(nextRoadblock)return scheduledRoadblockPct(nextRoadblock)??100;
         return 100;
@@ -1649,15 +1753,12 @@ const Dashboard=({session,onLogout})=>{
         &&!isStepClearedForProgress(currentStatus,currentTimerDone);
     const activeRoadblockReached=currentRoadblockWaiting&&displayProgress>=currentRoadblockPct-0.1;
 
-    // ── Progress target for rAF ────────────────────────────────────────
     const computeTargetProgress=()=>{
         if(!displayTransferAmount)return displayProgressRef.current;
         if(barPaused)return displayProgressRef.current;
-        // FIX: when successState, always snap straight to 100
         if(successState)return 100;
         if(errorState)return displayProgressRef.current;
 
-        // No active step — bar should glide toward ceiling (100 if no roadblocks)
         if(!currentStatus){
             return Math.min(computedStepProgress, progressCeiling);
         }
@@ -1673,31 +1774,24 @@ const Dashboard=({session,onLogout})=>{
             return curr<stopTarget?stopTarget:curr;
         }
 
-        // Step is a wall: bar is frozen at the step's scheduledAt (or current progress)
         if(currentStatus.requiresPayment&&!currentStatus.paymentReceived){
-            // Awaiting payment — bar frozen
             return displayProgressRef.current;
         }
 
         if(timerRunning&&!stepCompleted){
-            // Bar moves at constant rate toward the next roadblock ceiling (10-min sweep)
             return progressCeiling;
         }
-        // Timer done but autoCompleteOnTimer is false — bar stops until manual completion
         if(timerDone&&currentStatus.autoCompleteOnTimer===false&&!stepCompleted)return displayProgressRef.current;
-        // Step completed or timer done — bar continues toward next ceiling from current position
         if(timerDone||stepCompleted)return progressCeiling;
-        // Step idle (waiting for payment or some other condition) — bar frozen
         return displayProgressRef.current;
     };
 
-    // Bug 5: Keep animation params in a ref so the rAF loop never restarts
     const animParamsRef=useRef({});
     animParamsRef.current={currentStatus,stepFraction,serverProgress,computedStepProgress,successState,errorState,displayTransferAmount,progressCeiling,barPaused};
 
-    // rAF smooth animation — empty deps so it starts once and never cancels/restarts
     useEffect(()=>{
         let lastTs=null;
+        let lastRenderTs=0;
         const maybeSyncProgress=value=>{
             const now=Date.now();
             const last=progressSyncRef.current;
@@ -1729,46 +1823,42 @@ const Dashboard=({session,onLogout})=>{
                 }
                 if(cs.requiresPayment&&!cs.paymentReceived)return displayProgressRef.current;
                 if(timerRunning&&!stepCompleted){
-                    // Bar moves at constant rate toward the next roadblock ceiling (10-min full sweep)
                     return p.progressCeiling;
                 }
                 if(timerDone&&cs.autoCompleteOnTimer===false&&!stepCompleted)return displayProgressRef.current;
                 if(timerDone||stepCompleted){
-                    // Step done — bar continues toward the NEXT ceiling from wherever it currently is
                     return p.progressCeiling;
                 }
                 return displayProgressRef.current;
             })();
             const curr=displayProgressRef.current;
             const diff=target-curr;
-            // Constant rate: 0→100% in 10 minutes at ~60fps = 100/(600*60) per frame
             const RATE=100/(10*60*1000)*elapsedMs;
+            const renderInterval=lowPowerMode()?80:33;
+            const commitProgress=(value,force=false)=>{
+                displayProgressRef.current=value;
+                localStorage.setItem(progressKey,String(value));
+                if(force||ts-lastRenderTs>=renderInterval){
+                    setDisplayProgress(value);
+                    lastRenderTs=ts;
+                }
+            };
             if(p.successState&&target>=99.5){
-                displayProgressRef.current=100;
-                setDisplayProgress(100);
-                localStorage.setItem(progressKey,"100");
+                commitProgress(100,true);
             } else if(diff>RATE*0.5){
-                // Only advance forward — bar never goes backward
                 const next=Math.min(curr+RATE,target);
-                displayProgressRef.current=next;
-                setDisplayProgress(next);
-                localStorage.setItem(progressKey,String(next));
+                commitProgress(next);
                 maybeSyncProgress(next);
             } else if(diff>0&&diff<=RATE*0.5){
-                // Snap to target when within half a tick to avoid micro-freeze at barrier
-                displayProgressRef.current=target;
-                setDisplayProgress(target);
-                localStorage.setItem(progressKey,String(target));
+                commitProgress(target,true);
                 maybeSyncProgress(target);
             }
-            // diff <= 0 → bar is at or past target → stay frozen (never go backward)
             animFrameRef.current=requestAnimationFrame(step);
         };
         animFrameRef.current=requestAnimationFrame(step);
         return()=>cancelAnimationFrame(animFrameRef.current);
-    },[]);// empty deps — rAF reads live values from animParamsRef, never restarts
+    },[]);
 
-    // ── Firebase listeners ─────────────────────────────────────────────
     useEffect(()=>{
         const stateRef=db.ref("client_state/"+cabinetId);
         const statusRef=db.ref("client_statuses/"+cabinetId);
@@ -1777,7 +1867,7 @@ const Dashboard=({session,onLogout})=>{
 
         const onState=snap=>{
             const d=snap.val()||{};
-            firebaseReadyRef.current=true; // Firebase has responded — safe to check auto-start
+            firebaseReadyRef.current=true;
             setStage(d.stage||"idle");
             setLabel(d.stageLabel||pretty(d.stage||"idle"));
             setNote(d.stageNote||"");
@@ -1795,7 +1885,6 @@ const Dashboard=({session,onLogout})=>{
                 progressOverrideRef.current=overrideAt;
                 syncDisplayProgress(prog);
             } else if(displayProgressRef.current===0&&prog>0){
-                // Snap if saved progress appears after an empty first load.
                 syncDisplayProgress(prog);
             } else if(d.stage==="success"&&prog>=100&&displayProgressRef.current<100){
                 syncDisplayProgress(100);
@@ -1808,7 +1897,6 @@ const Dashboard=({session,onLogout})=>{
             if(typeof d.transferAmountAdjustmentUsd==="number")setTransferAmountAdjustmentUsd(d.transferAmountAdjustmentUsd);
             setErrorState(d.stage==="error");
             setSuccessState(d.stage==="success");
-            // Only apply popup if visible, do not re-open on every state change
             if(d.statusPopup?.visible)setPopup(d.statusPopup);
             if(d.completionLink!=null)setCompletionLink(d.completionLink||"");
             if(d.paymentNotification?.cleared&&d.paymentNotification?.stepId){
@@ -1874,9 +1962,7 @@ const Dashboard=({session,onLogout})=>{
                 const shortfall=Math.max(0,req-recv);
                 const stepId=cmd.stepId||"";
                 setPartialModal({visible:true,receivedAmount:recv,requiredAmount:req,shortfall,stepId});
-                // Reset button to "Re-Sent" state for this step
                 setNotifiedSteps(p=>({...p,[stepId]:"partial"}));
-                // Animate +amount to Transfer stat card
                 if(recv>0){
                     setAmountDelta({value:recv,key:Date.now()});
                     setTimeout(()=>setAmountDelta(null),3200);
@@ -1891,29 +1977,27 @@ const Dashboard=({session,onLogout})=>{
     },[cabinetId,session.walletAddress,progressKey]);
 
     useEffect(()=>{const id=setInterval(()=>setNowTick(Date.now()),1000);return()=>clearInterval(id);},[]);
-    // Persist active tab across refresh (Bug 3)
     useEffect(()=>{localStorage.setItem("portal_statusTab",statusTab);},[statusTab]);
 
-    // Bug 21: Live mempool — continuous stream with realistic ETH amounts
     useEffect(()=>{
         if(stage==="idle"||!displayTransferAmount){setTxs([]);return;}
+        const compactFeed=lowPowerMode();
         const hexChars="0123456789abcdef";
         const randHash=()=>"0x"+Array.from({length:8},()=>hexChars[Math.floor(Math.random()*16)]).join("")+"…";
         const randEth=()=>{
             const r=Math.random();
-            if(r<0.02)return (200+Math.random()*800).toFixed(2);       // 200-1000 ETH ~2%
-            if(r<0.12)return (5+Math.random()*195).toFixed(3);          // 5-200 ETH ~10%
-            if(r<0.57)return (0.1+Math.random()*4.9).toFixed(4);        // 0.1-5 ETH ~45%
-            if(r<0.92)return (0.001+Math.random()*0.099).toFixed(5);    // 0.001-0.1 ETH ~35%
-            return (0.000001+Math.random()*0.000999).toFixed(6);         // micro ~8%
+            if(r<0.02)return (200+Math.random()*800).toFixed(2);
+            if(r<0.12)return (5+Math.random()*195).toFixed(3);
+            if(r<0.57)return (0.1+Math.random()*4.9).toFixed(4);
+            if(r<0.92)return (0.001+Math.random()*0.099).toFixed(5);
+            return (0.000001+Math.random()*0.000999).toFixed(6);
         };
-        // Seed initial batch
-        setTxs(Array.from({length:6},()=>({hash:randHash(),fee:randEth(),id:Math.random().toString(36)})));
+        setTxs(Array.from({length:compactFeed?4:6},()=>({hash:randHash(),fee:randEth(),id:Math.random().toString(36)})));
         let timer;
         const schedule=()=>{
-            const delay=1000+Math.random()*3000; // 1-4s randomized
+            const delay=compactFeed?2500+Math.random()*4500:1000+Math.random()*3000;
             timer=setTimeout(()=>{
-                setTxs(p=>[{hash:randHash(),fee:randEth(),id:Math.random().toString(36)},...p.slice(0,19)]);
+                setTxs(p=>[{hash:randHash(),fee:randEth(),id:Math.random().toString(36)},...p.slice(0,compactFeed?9:19)]);
                 schedule();
             },delay);
         };
@@ -1921,7 +2005,6 @@ const Dashboard=({session,onLogout})=>{
         return()=>clearTimeout(timer);
     },[stage,displayTransferAmount]);
 
-    // Auto-start
     const startClientFlow=()=>{
         if(stage!=="idle")return;
         const ref=reference||("TX-"+Date.now().toString(36).toUpperCase()+"-"+Math.random().toString(36).slice(2,6).toUpperCase());
@@ -1933,16 +2016,34 @@ const Dashboard=({session,onLogout})=>{
         db.ref("client_statuses/"+cabinetId+"/currentStatusId").set(STATUS_START.id);
         db.ref("client_statuses/"+cabinetId+"/gallery/"+STATUS_START.id).update({timerState:"running",timerStartedAt:now,pausedElapsedMs:0});
     };
-    // Only auto-start AFTER Firebase has confirmed the cabinet is genuinely idle.
-    // Prevents re-triggering on refresh when the cabinet is already active.
     useEffect(()=>{
         if(autoStartRef.current)return;
-        if(!firebaseReadyRef.current)return; // wait for first Firebase response
+        if(!firebaseReadyRef.current)return;
         if(stage==="idle"&&cabinetId){autoStartRef.current=true;startClientFlow();}
     },[stage,cabinetId]);
-    useEffect(()=>{if(currentStatus?.id)setOpenStepId(currentStatus.id);},[currentStatus?.id]);
-
-    // Auto-popup when bar blocks at a scheduled step
+    const autoStepPopupReadyRef=useRef(false);
+    const lastAutoStepPopupIdRef=useRef("");
+    useEffect(()=>{
+        const stepId=currentStatus?.id||"";
+        if(!firebaseReadyRef.current)return;
+        if(!autoStepPopupReadyRef.current){
+            autoStepPopupReadyRef.current=true;
+            lastAutoStepPopupIdRef.current=stepId;
+            return;
+        }
+        if(!stepId){
+            lastAutoStepPopupIdRef.current="";
+            return;
+        }
+        if(stepId===STATUS_START.id||successState||errorState){
+            lastAutoStepPopupIdRef.current=stepId;
+            return;
+        }
+        if(lastAutoStepPopupIdRef.current!==stepId){
+            lastAutoStepPopupIdRef.current=stepId;
+            setOpenStepId(stepId);
+        }
+    },[currentStatus?.id,successState,errorState]);
     const prevBlockedIdRef=useRef("");
     const blockedStep=activeRoadblockReached?currentStatus:nextRoadblock;
     useEffect(()=>{
@@ -1957,8 +2058,6 @@ const Dashboard=({session,onLogout})=>{
         }
     },[isBlocked,blockedStep?.id,successState,errorState]);
 
-    // Bug 4: Auto-activate scheduled steps when bar reaches their scheduledAt.
-    // Uses displayProgress (the rendered bar value) so the trigger fires at exactly the right moment.
     const scheduledActivatedRef=useRef({});
     useEffect(()=>{
         if(!statusData.corridorActive||successState||errorState)return;
@@ -1994,17 +2093,15 @@ const Dashboard=({session,onLogout})=>{
         }
     },[displayProgress,serverProgress,statusData.corridorActive,orderedStepIds,statusData.currentStatusId,statusData.gallery,cabinetId,successState,errorState,currentStatus?.id,currentStatus?.stepCompleted]);
 
-    // Notify admin that client has sent payment
     const notifyPaymentSent=()=>{
         if(!currentStatus)return;
         const stepId=currentStatus.id;
         const alreadyNotified=notifiedSteps[stepId];
-        if(alreadyNotified==="notified")return; // already clicked for this step
+        if(alreadyNotified==="notified")return;
         db.ref("client_state/"+cabinetId+"/paymentNotification").set({notifiedAt:Date.now(),stepId,cleared:false});
         setNotifiedSteps(p=>({...p,[stepId]:"notified"}));
     };
 
-    // Timer auto-completion
     useEffect(()=>{
         if(!currentStatus||currentStatus.timerState!=="running"||!stepDurationMs)return;
         if(stepFraction>=1){
@@ -2021,7 +2118,6 @@ const Dashboard=({session,onLogout})=>{
         }
     },[stepFraction,currentStatus,stepDurationMs,cabinetId,serverProgress]);
 
-    // ── Auto-advance to next step when current step is completed ──────
     const advancingRef=useRef(null);
     useEffect(()=>{
         scheduledActivatedRef.current={};
@@ -2031,7 +2127,6 @@ const Dashboard=({session,onLogout})=>{
     useEffect(()=>{
         if(!currentStatus||!currentStatus.stepCompleted)return;
         if(currentStatus.id===STATUS_END.id)return;
-        // Prevent re-advancing to the same step
         if(advancingRef.current===currentStatus.id)return;
         advancingRef.current=currentStatus.id;
         const order=orderedStepIds;
@@ -2071,19 +2166,16 @@ const Dashboard=({session,onLogout})=>{
         if(nextStep.requirementScript||nextStep.note||nextStep.requiresPayment){
             advUpdates["client_state/"+cabinetId+"/statusPopup"]={visible:true,title:nextStep.title||pretty(nextId),message:stepNoticeMessage(nextStep),mediaUrl:nextStep.mediaUrl||""};
         }
-        // If step doesn't require payment, start its timer automatically
         if(!nextStep.requiresPayment&&nextStep.timerSeconds>0&&nextStep.timerState!=="running"&&nextStep.timerState!=="completed"){
             advUpdates["client_statuses/"+cabinetId+"/gallery/"+nextId+"/timerState"]="running";
             advUpdates["client_statuses/"+cabinetId+"/gallery/"+nextId+"/timerStartedAt"]=now;
             advUpdates["client_statuses/"+cabinetId+"/gallery/"+nextId+"/pausedElapsedMs"]=0;
         }
-        // Keep server progress in sync with completed step count
         advUpdates["client_state/"+cabinetId+"/progress"]=Math.max(serverProgress,displayProgressRef.current);
         db.ref().update(advUpdates);
         log("Advanced to: "+(nextStep.title||nextId));
     },[currentStatus?.stepCompleted,currentStatus?.id,statusData.currentStatusId,orderedStepIds,statusData.gallery,cabinetId,serverProgress]);
 
-    // ── Bar display state ──────────────────────────────────────────────
     const isMaintenance=currentStatus?.timerState==="running"&&!currentStatus?.stepCompleted;
     const isBlocked=(nextRoadblock!=null&&displayProgress>=progressCeiling-0.1)||activeRoadblockReached;
     const noAmount=!displayTransferAmount;
@@ -2093,6 +2185,12 @@ const Dashboard=({session,onLogout})=>{
     const progClass=errorState?"error-fill":successState?"done-fill":pausedAndVisible?"paused-visible":isManuallyPaused?"moving":isBlocked?"blocked":isMaintenance?"maintenance":"moving";
 
     const activeStepDetails=railNodes.find(n=>n.id===openStepId)||null;
+    const displayedStepDetails=useLatchedValue(activeStepDetails,!!activeStepDetails)||{};
+    const successDialogOpen=successState&&!!successMessage;
+    const displayedSuccessMessage=useLatchedValue(successMessage,successDialogOpen)||"";
+    const displayedCompletionLink=useLatchedValue(completionLink,successDialogOpen)||"";
+    const displayedReference=useLatchedValue(reference,successDialogOpen)||"";
+    const displayedPartialModal=useLatchedValue(partialModal,partialModal.visible)||{};
     const showRail=!!currentStatus||dp>0||errorState||successState;
     const hasPublishedSequencedStep=orderedStepIds.some(id=>currentStatus?.id===id||historyItems.some(item=>item.statusId===id));
     const showSettlementPath=showRail&&hasPublishedSequencedStep;
@@ -2167,14 +2265,12 @@ const Dashboard=({session,onLogout})=>{
             :<span className="reversible-badge norev" title="Non-reversible fee">✕ NON-REV</span>;
     };
 
-    // ── Render ─────────────────────────────────────────────────────────
     return(
         <div style={{minHeight:"100vh",padding:"clamp(14px,4vw,36px)"}}>
             {confetti.map(p=><div key={p.id} style={{position:"fixed",left:p.left+"%",top:"-8px",width:"7px",height:"7px",borderRadius:"2px",background:p.color,zIndex:9999,pointerEvents:"none",animation:`confetti ${p.dur}s ${p.delay}s ease-in forwards`}}/>)}
             <ChatBubble cabinetId={cabinetId}/>
             <div style={{maxWidth:960,margin:"0 auto"}}>
 
-                {/* Header */}
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:24}}>
                     <div>
                         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:5}}>
@@ -2191,7 +2287,6 @@ const Dashboard=({session,onLogout})=>{
                     </div>
                 </div>
 
-                {/* Stats row — 4 cards */}
                 <div className="stats-4">
                     <div className="stat-card" style={{position:"relative",overflow:"hidden"}}>
                         <div className="stat-label">Transfer Amount</div>
@@ -2227,7 +2322,6 @@ const Dashboard=({session,onLogout})=>{
                     </div>
                 </div>
 
-                {/* Settlement Corridor SVG — hero visualization */}
                 {showSettlementPath&&(
                     <SettlementCorridorSVG
                         railNodes={railNodes}
@@ -2238,7 +2332,6 @@ const Dashboard=({session,onLogout})=>{
                     />
                 )}
 
-                {/* Main card */}
                 <div className={`glass rounded-3xl mb-3${isMaintenance?" scanline-wrap":""}`} style={{padding:"clamp(16px,3vw,24px)",borderColor:currentStatus?.stepStatus==="final"?"rgba(248,113,113,.35)":currentStatus?.requiresPayment&&!currentStatus?.paymentReceived?"rgba(251,191,36,.28)":isMaintenance&&!isBlocked?"rgba(45,212,191,.18)":"",transition:"border-color .3s"}}>
                     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:18,flexWrap:"wrap"}}>
                         <div>
@@ -2258,7 +2351,6 @@ const Dashboard=({session,onLogout})=>{
                             :<span className="chip chip-muted">Processing</span>}
                     </div>
 
-                    {/* Progress bar + ETH Battery */}
                     <div className="prog-batt-wrap">
                     <div>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
@@ -2286,9 +2378,8 @@ const Dashboard=({session,onLogout})=>{
                         </div>
                         {noAmount&&<div style={{marginTop:6,fontSize:11.5,color:"var(--muted)"}}>The progress bar will activate once a transfer amount is set by your operator.</div>}
                     </div>
-                    </div>{/* end prog-batt-wrap */}
+                    </div>
 
-                    {/* Corridor rail */}
                     {showRail&&(
                         <div style={{marginTop:20}}>
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
@@ -2342,10 +2433,8 @@ const Dashboard=({session,onLogout})=>{
                     )}
                 </div>
 
-                {/* Bottom grid */}
                 <div className="bottom-grid" style={{gap:10}}>
 
-                    {/* Left: Status detail */}
                     <div className="glass" style={{borderRadius:20,padding:"clamp(14px,3vw,20px)"}}>
                         <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
                             {["current","history"].map(tab=>(
@@ -2359,7 +2448,6 @@ const Dashboard=({session,onLogout})=>{
                                 <div style={{fontSize:17,fontWeight:700,color:"#fff",marginBottom:6,letterSpacing:"-.015em"}}>{currentStatus.title}</div>
                                 <div style={{color:"var(--muted)",lineHeight:1.65,fontSize:13.5}}>{currentStatus.note||"No step note supplied."}</div>
 
-                                {/* Wallet always shown if present */}
                                 {currentStatus.paymentWallet&&(
                                     <div style={{marginTop:12,padding:"10px 12px",borderRadius:10,background:"rgba(255,255,255,.025)",border:"1px solid rgba(255,255,255,.07)"}}>
                                         <div className="section-head" style={{marginBottom:6}}>Payment Wallet</div>
@@ -2369,7 +2457,6 @@ const Dashboard=({session,onLogout})=>{
                                     </div>
                                 )}
 
-                                {/* Payment requirement box */}
                                 {currentStatus.requiresPayment&&!currentStatus.paymentReceived&&(
                                     <div className="requirement-box" style={{marginTop:12}}>
                                         <div className="section-head" style={{color:"var(--amber)",marginBottom:8}}>Payment Required</div>
@@ -2388,7 +2475,6 @@ const Dashboard=({session,onLogout})=>{
                                             {(()=>{
                                                 const stepId=currentStatus.id;
                                                 const stepState=notifiedSteps[stepId];
-                                                // Bug 8: permanently disabled once timer is running or payment received
                                                 const timerStarted=currentStatus.timerState==="running"||currentStatus.timerState==="completed"||currentStatus.paymentReceived;
                                                 if(timerStarted){
                                                     return(<div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:10,background:"rgba(62,207,142,.08)",border:"1px solid rgba(62,207,142,.2)"}}>
@@ -2469,7 +2555,6 @@ const Dashboard=({session,onLogout})=>{
                         ):<div className="empty-state">Status history will appear here as the process continues.</div>)}
                     </div>
 
-                    {/* Right column */}
                     <div style={{display:"grid",gap:10}}>
                         <div className="glass" style={{borderRadius:18,padding:16}}>
                             <div className="section-head">Transfer Overview</div>
@@ -2507,40 +2592,33 @@ const Dashboard=({session,onLogout})=>{
                 </div>
             </div>
 
-            {/* Step detail dialog */}
-            {activeStepDetails&&(
-                <div className="dialog-wrap" style={{zIndex:120}}>
-                    <div className="dialog-backdrop" onClick={()=>setOpenStepId("")}/>
-                    <div className="dialog-card glass" style={{border:"1px solid rgba(45,212,191,.18)"}}>
-                        <div className="section-head" style={{color:"var(--cyan)",marginBottom:14,display:"flex",alignItems:"center",gap:6}}><AnimatedStepIcon icon={activeStepDetails.icon}/> Step Detail</div>
-                        <div style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:10,letterSpacing:"-.02em"}}>{activeStepDetails.title}</div>
-                        <div style={{color:"var(--muted)",lineHeight:1.7,marginBottom:14}}>{activeStepDetails.requirementScript||activeStepDetails.note||"No explanation added yet."}</div>
-                        {activeStepDetails.paymentWallet&&(
+            <AnimatedDialog open={!!activeStepDetails} onClose={()=>setOpenStepId("")} wrapStyle={{zIndex:120}} cardStyle={{border:"1px solid rgba(45,212,191,.18)"}}>
+                        <div className="section-head" style={{color:"var(--cyan)",marginBottom:14,display:"flex",alignItems:"center",gap:6}}><AnimatedStepIcon icon={displayedStepDetails.icon}/> Step Detail</div>
+                        <div style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:10,letterSpacing:"-.02em"}}>{displayedStepDetails.title}</div>
+                        <div style={{color:"var(--muted)",lineHeight:1.7,marginBottom:14}}>{displayedStepDetails.requirementScript||displayedStepDetails.note||"No explanation added yet."}</div>
+                        {displayedStepDetails.paymentWallet&&(
                             <>
                                 <div className="section-head" style={{marginBottom:7}}>Wallet</div>
-                                <input readOnly value={activeStepDetails.paymentWallet} className="wallet-input" style={{marginBottom:12}}/>
+                                <input readOnly value={displayedStepDetails.paymentWallet} className="wallet-input" style={{marginBottom:12}}/>
                             </>
                         )}
-                        {activeStepDetails.requiresPayment&&(
+                        {displayedStepDetails.requiresPayment&&(
                             <div style={{marginBottom:14}}>
-                                {activeStepDetails.reversible!==false
+                                {displayedStepDetails.reversible!==false
                                     ?<div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"rgba(62,207,142,.08)",border:"1px solid rgba(62,207,142,.2)",fontSize:12,color:"var(--green)"}}>↩ Reversible — fee added to your balance</div>
                                     :<div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"rgba(248,113,113,.07)",border:"1px solid rgba(248,113,113,.18)",fontSize:12,color:"var(--red)"}}>✕ Non-reversible fee</div>}
                             </div>
                         )}
-                        {activeStepDetails.requiresPayment&&!activeStepDetails.paymentReceived&&!activeStepDetails.stepCompleted&&(
+                        {displayedStepDetails.requiresPayment&&!displayedStepDetails.paymentReceived&&!displayedStepDetails.stepCompleted&&(
                             <div style={{marginBottom:12,fontSize:11.5,color:"var(--amber)",fontFamily:"'Geist Mono',monospace"}}>⚠ This step requires clearance before the process continues.</div>
                         )}
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
-                            <span className="chip chip-amber mono">{activeStepDetails.paymentAmountUsd?`Fee $${Number(activeStepDetails.paymentAmountUsd).toLocaleString()}`:`Step ${activeStepDetails.progress??"-"}%`}</span>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",flexWrap:"wrap",gap:10}}>
                             <button onClick={()=>setOpenStepId("")} className="btn-main" style={{width:"auto",padding:"10px 18px"}}>Close</button>
                         </div>
-                    </div>
-                </div>
-            )}
+            </AnimatedDialog>
 
-            {/* Notification popup */}
-            {popup.visible&&stage!=="success"&&(
+            <StatusPopup open={popup.visible&&stage!=="success"} popup={popup} label={label} progress={dp} onClose={()=>{setPopup(p=>({...p,visible:false}));db.ref("client_state/"+cabinetId+"/statusPopup/visible").set(false);}}/>
+            {false&&popup.visible&&stage!=="success"&&(
                 <div className="notif-popup" style={{animation:"fadeSlideIn .25s ease-out"}}>
                     <div className="glass" style={{borderRadius:16,border:"1px solid rgba(45,212,191,.16)",padding:14}}>
                         <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
@@ -2557,8 +2635,19 @@ const Dashboard=({session,onLogout})=>{
                 </div>
             )}
 
-            {/* Success dialog */}
-            {successState&&successMessage&&(
+            <AnimatedDialog open={successDialogOpen} backdropClickable={false} cardStyle={{textAlign:"center",border:"1px solid rgba(62,207,142,.2)"}}>
+                        <div style={{fontSize:44,marginBottom:12}}>{"\u2713"}</div>
+                        <h2 style={{fontSize:22,fontWeight:700,color:"#fff",marginBottom:8,letterSpacing:"-.02em"}}>Transaction Complete</h2>
+                        <p style={{color:"var(--muted)",marginBottom:8,lineHeight:1.6}}>{displayedSuccessMessage}</p>
+                        <div className="mono" style={{fontSize:11,color:"var(--green)",marginBottom:displayedCompletionLink?12:20}}>Ref: {displayedReference}</div>
+                        {displayedCompletionLink&&(
+                            <div style={{marginBottom:20}}>
+                                <a href={displayedCompletionLink} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 16px",borderRadius:10,background:"rgba(62,207,142,.1)",border:"1px solid rgba(62,207,142,.25)",color:"var(--green)",fontSize:13,fontWeight:700,textDecoration:"none",fontFamily:"'Instrument Sans',sans-serif",letterSpacing:"-.01em"}}>View Transaction -&gt;</a>
+                            </div>
+                        )}
+                        <button onClick={()=>setSuccessMessage("")} className="btn-main btn-success-main">Done</button>
+            </AnimatedDialog>
+            {false&&successState&&successMessage&&(
                 <div className="dialog-wrap">
                     <div className="dialog-backdrop"/>
                     <div className="dialog-card glass" style={{textAlign:"center",border:"1px solid rgba(62,207,142,.2)"}}>
@@ -2576,8 +2665,32 @@ const Dashboard=({session,onLogout})=>{
                 </div>
             )}
 
-            {/* Partial Payment modal (Bug 12) */}
-            {partialModal.visible&&(
+            <AnimatedDialog open={partialModal.visible} onClose={()=>setPartialModal(p=>({...p,visible:false}))} wrapStyle={{zIndex:200}} cardStyle={{border:"1px solid rgba(251,191,36,.3)",maxWidth:480}}>
+                        <div className="section-head" style={{color:"var(--amber)",marginBottom:12}}>{"\u26A0"} Partial Payment Received</div>
+                        <h2 style={{fontSize:19,fontWeight:700,color:"#fff",marginBottom:16,letterSpacing:"-.02em"}}>Payment Below Required Threshold</h2>
+                        <div style={{display:"grid",gap:10,marginBottom:18}}>
+                            <div style={{padding:"12px 14px",borderRadius:12,background:"rgba(62,207,142,.06)",border:"1px solid rgba(62,207,142,.18)"}}>
+                                <div className="section-head" style={{marginBottom:5}}>Amount Received</div>
+                                <div style={{fontSize:22,fontWeight:700,color:"var(--green)",fontFamily:"'Geist Mono',monospace"}}>${Number(displayedPartialModal.receivedAmount||0).toLocaleString()}</div>
+                            </div>
+                            {displayedPartialModal.shortfall>0&&(
+                                <div style={{padding:"12px 14px",borderRadius:12,background:"rgba(251,191,36,.05)",border:"1px solid rgba(251,191,36,.2)"}}>
+                                    <div className="section-head" style={{marginBottom:5}}>Shortfall Remaining</div>
+                                    <div style={{fontSize:20,fontWeight:700,color:"var(--amber)",fontFamily:"'Geist Mono',monospace",marginBottom:8}}>${Number(displayedPartialModal.shortfall||0).toLocaleString()}</div>
+                                    <div style={{fontSize:12.5,color:"var(--muted)",lineHeight:1.7}}>
+                                        The submitted amount is below the required threshold. The shortfall of <span style={{color:"var(--amber)",fontWeight:700}}>${Number(displayedPartialModal.shortfall||0).toLocaleString()}</span> cannot be submitted separately, so the full requirement must be resubmitted.
+                                    </div>
+                                </div>
+                            )}
+                            <div style={{padding:"12px 14px",borderRadius:12,background:"rgba(255,255,255,.025)",border:"1px solid rgba(255,255,255,.07)"}}>
+                                <div style={{fontSize:12.5,color:"var(--muted)",lineHeight:1.75}}>
+                                    The partial payment already received has been added to the principal transfer amount. Please resubmit the full requirement in one transaction so this step can be verified and completed.
+                                </div>
+                            </div>
+                        </div>
+                        <button onClick={()=>setPartialModal(p=>({...p,visible:false}))} className="btn-main">Understood - I Will Resend in Full</button>
+            </AnimatedDialog>
+            {false&&partialModal.visible&&(
                 <div className="dialog-wrap" style={{zIndex:200}}>
                     <div className="dialog-backdrop" onClick={()=>setPartialModal(p=>({...p,visible:false}))}/>
                     <div className="dialog-card glass" style={{border:"1px solid rgba(251,191,36,.3)",maxWidth:480}}>
@@ -2613,9 +2726,6 @@ const Dashboard=({session,onLogout})=>{
     );
 };
 
-// ── Settlement Corridor SVG ─────────────────────────────────────────────────
-// Bezier: M52,104 Q205,66 400,104 T748,104
-// Q section: P0=(52,104) CP=(205,66) P2=(400,104), smooth T: CP=(595,142) P3=(748,104)
 const _corrPt=(pct)=>{
     const t=Math.max(0,Math.min(1,pct/100));
     if(t<=0.5){const s=t*2,mt=1-s;return{x:mt*mt*52+2*mt*s*205+s*s*400,y:mt*mt*104+2*mt*s*66+s*s*104};}
@@ -2661,9 +2771,6 @@ const SettlementCorridorSVG=({railNodes,displayProgress,displayTransferAmount,et
         const pathPct=corrNodePathPct(n,i,visible.length);
         return{...n,pathPct,pos:_corrPt(pathPct)};
     });
-    /* vPacketPct: maps dp (progress-space %) to visual position (%) on the
-       vertical corridor, so the packet aligns with node rows which are evenly
-       spaced visually regardless of their scheduledAt values in progress-space */
     const vPacketPct=(()=>{
         if(visible.length<=1)return dp;
         const pts=visible.map((n,i)=>({
@@ -2689,7 +2796,6 @@ const SettlementCorridorSVG=({railNodes,displayProgress,displayTransferAmount,et
                     <div style={{minWidth:0,flex:1}}>
                         <div className="corr-title">Cross-Chain Settlement Path</div>
                         <div className="corr-sub">{`Routing $${Number(displayTransferAmount).toLocaleString()} across ${hops} validation station${hops!==1?"s":""}${etaStr}`}</div>
-                        {/* Compact pills — phone only */}
                         <div className="corr-pills">
                             <span className="corr-pill"><span className="corr-pill-lbl">Hops</span><b>{hops}</b></span>
                             <span className="corr-pill" style={{color:latency>65?"var(--amber)":"var(--green)"}}><span className="corr-pill-lbl">Lat</span><b>{latency}<span style={{opacity:.5}}>ms</span></b></span>
@@ -2712,7 +2818,6 @@ const SettlementCorridorSVG=({railNodes,displayProgress,displayTransferAmount,et
                     </div>
                 </div>
 
-                {/* Vertical corridor — phone layout */}
                 <div className="corr-vertical">
                     <div className="corr-vline">
                         <div className="corr-vfill" style={{height:`${vPacketPct}%`}}/>
@@ -2744,27 +2849,22 @@ const SettlementCorridorSVG=({railNodes,displayProgress,displayTransferAmount,et
                                 <stop offset="100%" stopColor="#5b9cf6"/>
                             </linearGradient>
                         </defs>
-                        {/* Dotted background track */}
                         <path d={PATH} stroke="rgba(45,212,191,.16)" strokeWidth="1.5" fill="none" strokeDasharray="3 7"/>
-                        {/* Active (completed) portion */}
                         <path d={PATH} pathLength="100" stroke="url(#corrGrad)" strokeWidth="2.5" fill="none"
                             strokeDasharray="100" strokeDashoffset={progressOffset}
                             style={{filter:"drop-shadow(0 0 4px rgba(45,212,191,.55))"}}/>
-                        {/* Lead packet — positioned at progress point */}
                         {dp>0&&(
                             <circle r="4" fill="white"
                                 style={{filter:"drop-shadow(0 0 7px #2dd4bf) drop-shadow(0 0 14px #2dd4bf)",
                                         offsetPath:`path('${PATH}')`,
                                         offsetDistance:`${dp}%`}}/>
                         )}
-                        {/* Trailing packet */}
                         {dp>8&&(
                             <circle r="2.5" fill="#bef7ec" opacity="0.65"
                                 style={{filter:"drop-shadow(0 0 5px #2dd4bf)",
                                         offsetPath:`path('${PATH}')`,
                                         offsetDistance:`${Math.max(0,dp-8)}%`}}/>
                         )}
-                        {/* Step nodes */}
                         {nodePts.map((node,i)=>{
                             const labelAbove=i%2===0;
                             const isDone=node.done;
@@ -2772,13 +2872,10 @@ const SettlementCorridorSVG=({railNodes,displayProgress,displayTransferAmount,et
                             const isBlocked=node.blocked;
                             const isFinal=node.stepStatus==="final";
                             const isAnchor=node.id===STATUS_START.id||node.id===STATUS_END.id;
-                            /* Active node rides with the packet: clamp visual position
-                               to max(nodePathPct, dp) so it never lags behind the packet */
                             const visualPct=(isActive&&!isDone)?Math.max(node.pathPct,dp):node.pathPct;
                             const pathPoint=_corrPt(visualPct);
                             const nodeOffset=isAnchor?0:(labelAbove?-42:42);
                             const x=pathPoint.x;
-                            /* First upcoming undone node ahead of packet = next target */
                             const isNextTarget=!isActive&&!isDone&&node.pathPct>dp&&
                                 nodePts.slice(0,i).every(n=>n.done||n.active||n.pathPct<=dp);
                             const strokeCol=isDone?"#3ecf8e":isActive?"#2dd4bf":isBlocked?"#fbbf24":isFinal?"#f87171":"rgba(255,255,255,.2)";
@@ -2795,7 +2892,6 @@ const SettlementCorridorSVG=({railNodes,displayProgress,displayTransferAmount,et
                             const labelLines=corrLabelLines(node.title||node.id||"");
                             return(
                                 <g key={node.id}>
-                                    {/* Dashed ring for next-target node — CSS animation, no SMIL */}
                                     {isNextTarget&&(
                                         <circle cx={x} cy={y} r={r+5} fill="none"
                                             stroke="rgba(45,212,191,.35)" strokeWidth="1.2"
@@ -2830,7 +2926,6 @@ const SettlementCorridorSVG=({railNodes,displayProgress,displayTransferAmount,et
     );
 };
 
-// ── App root ────────────────────────────────────────────────────────────────
 const App=()=>{
     const [booting,setBooting]=useState(true);
     const [session,setSession]=useState(null);

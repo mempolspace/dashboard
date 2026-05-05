@@ -1,0 +1,2897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#060b14">
+    <title>Mempool Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&family=Instrument+Sans:wght@400;500;600;700;800&display=swap');
+:root{
+    --bg:#060b14;--surface:rgba(10,16,28,0.94);--surface2:rgba(7,11,20,0.96);
+    --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+    --cyan:#2dd4bf;--blue:#5b9cf6;--violet:#8b8ef8;--green:#3ecf8e;--red:#f87171;--amber:#fbbf24;
+    --text:#eef2f8;--muted:rgba(238,242,248,0.55);--muted2:rgba(238,242,248,0.28)
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{font-family:'Instrument Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,a,[role="button"]{touch-action:manipulation}
+.mono{font-family:'Geist Mono',monospace;letter-spacing:-.01em}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 15% 0%,rgba(45,212,191,.07) 0%,transparent 60%),radial-gradient(ellipse 50% 50% at 85% 100%,rgba(139,142,248,.05) 0%,transparent 60%);pointer-events:none;z-index:0}
+#root{position:relative;z-index:1}
+.glass{background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border)}
+.glass2{background:var(--surface2);backdrop-filter:blur(20px);border:1px solid var(--border)}
+.prog-wrap{position:relative}
+.prog-track{width:100%;height:16px;background:rgba(255,255,255,0.06);border-radius:999px;overflow:hidden;position:relative}
+.prog-fill{height:100%;border-radius:999px;transition:width 120ms linear;position:relative;overflow:hidden;will-change:width}
+.prog-fill.moving{background:linear-gradient(90deg,var(--cyan),var(--violet))}
+.prog-fill.maintenance{background:linear-gradient(90deg,#78350f,#92400e,#b45309)}
+.prog-fill.blocked{background:linear-gradient(90deg,var(--amber),#f59e0b)}
+.prog-fill.error-fill{background:linear-gradient(90deg,var(--red),#f05656)}
+.prog-fill.done-fill{background:linear-gradient(90deg,var(--green),#059669)}
+.prog-fill.paused-visible{background:repeating-linear-gradient(45deg,rgba(148,163,184,.2) 0px,rgba(148,163,184,.2) 8px,rgba(148,163,184,.08) 8px,rgba(148,163,184,.08) 16px);border-right:2px solid rgba(148,163,184,.4)}
+.prog-fill.paused-visible::after{display:none}
+.prog-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:24px;background:rgba(255,255,255,.22);filter:blur(4px);pointer-events:none}
+.maint-icons,.maint-icon,.prog-marker{display:none!important}
+.prog-marker::after{display:none!important}
+.status-rail{display:flex;gap:10px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.status-rail::-webkit-scrollbar{height:8px}
+.status-rail::-webkit-scrollbar-track{background:rgba(255,255,255,.03);border-radius:999px}
+.status-rail::-webkit-scrollbar-thumb{background:rgba(45,212,191,.28);border-radius:999px;border:2px solid rgba(6,11,20,1);background-clip:padding-box}
+.status-rail::-webkit-scrollbar-thumb:hover{background:rgba(45,212,191,.5);background-clip:padding-box}
+.status-node{min-width:136px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:transform .15s,border-color .15s,background .15s,box-shadow .15s;flex-shrink:0;position:relative}
+.status-node:hover{transform:translateY(-1px);border-color:rgba(45,212,191,.18)}
+.status-node.active{border-color:rgba(45,212,191,.3);background:rgba(45,212,191,.08)}
+.status-node.done{border-color:rgba(62,207,142,.22);background:rgba(62,207,142,.06)}
+.status-node.blocked-node{border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.06)}
+.status-node.final-node{min-width:160px;border:2px solid rgba(248,113,113,.4);box-shadow:0 0 12px rgba(248,113,113,.15);background:rgba(248,113,113,.06);animation:finalGlow 2s ease-in-out infinite}
+.status-node.pre-final-node{min-width:160px;border:2px solid transparent;background:rgba(251,191,36,.06);background-clip:padding-box;position:relative}
+.status-node.pre-final-node::before{content:'';position:absolute;inset:-2px;border-radius:14px;background:linear-gradient(135deg,rgba(251,191,36,.5),rgba(248,113,113,.3),rgba(251,191,36,.5));z-index:-1;animation:sweepBorder 3s linear infinite}
+@keyframes finalGlow{0%,100%{box-shadow:0 0 8px rgba(248,113,113,.15)}50%{box-shadow:0 0 18px rgba(248,113,113,.3)}}
+@keyframes sweepBorder{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+.reversible-badge{position:absolute;bottom:5px;right:5px;font-size:9px;padding:2px 5px;border-radius:4px;font-weight:700;font-family:'Geist Mono',monospace;pointer-events:none}
+.reversible-badge.rev{background:rgba(62,207,142,.12);border:1px solid rgba(62,207,142,.25);color:var(--green)}
+.reversible-badge.norev{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.22);color:var(--red)}
+.tab-btn{padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;font-family:'Instrument Sans',sans-serif}
+.tab-btn.active{background:rgba(45,212,191,.1);border-color:rgba(45,212,191,.22);color:var(--cyan)}
+.status-card{padding:14px;border-radius:14px;background:var(--surface2);border:1px solid var(--border)}
+.requirement-box{padding:14px;border-radius:12px;border:1px solid rgba(251,191,36,.22);background:rgba(251,191,36,.05)}
+.timeline{display:grid;gap:8px}
+.timeline-item{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06)}
+.login-shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse 55% 45% at 50% 0%,rgba(45,212,191,.07),transparent 60%),var(--bg)}
+.login-card{width:min(100%,440px);padding:36px;border-radius:24px;background:rgba(9,14,24,.96);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(24px);box-shadow:0 28px 64px rgba(0,0,0,.42)}
+.login-logo{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,var(--cyan),#3b82f6);display:flex;align-items:center;justify-content:center;font-weight:800;color:#040e1a;font-size:14px;margin-bottom:22px;font-family:'Geist Mono',monospace}
+.login-card h1{font-size:24px;font-weight:700;letter-spacing:-.025em;margin-bottom:8px}
+.login-card p{color:var(--muted);line-height:1.65;font-size:13.5px;margin-bottom:26px}
+.login-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:rgba(238,242,248,.35);margin-bottom:7px}
+.login-field{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);padding:12px 14px;color:var(--text);font-size:13.5px;outline:none;transition:border-color .18s,background .18s;font-family:'Geist Mono',monospace}
+.login-field:focus{border-color:rgba(45,212,191,.3);background:rgba(255,255,255,.07)}
+.login-field::placeholder{color:rgba(238,242,248,.25)}
+.btn-main{width:100%;padding:13px;border-radius:12px;background:linear-gradient(145deg,var(--cyan),#3b9df5);color:#04111e;font-weight:700;border:none;cursor:pointer;transition:transform .15s,opacity .15s,box-shadow .15s;font-family:'Instrument Sans',sans-serif;font-size:14px;box-shadow:0 2px 14px rgba(45,212,191,.2)}
+.btn-main:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(45,212,191,.3)}
+.btn-main:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-success-main{background:linear-gradient(145deg,var(--green),#059669);color:#021a10}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);font-size:11px;font-weight:600}
+.chip-cyan{border-color:rgba(45,212,191,.2);background:rgba(45,212,191,.07);color:var(--cyan)}
+.chip-green{border-color:rgba(62,207,142,.2);background:rgba(62,207,142,.07);color:var(--green)}
+.chip-amber{border-color:rgba(251,191,36,.2);background:rgba(251,191,36,.07);color:var(--amber)}
+.chip-red{border-color:rgba(248,113,113,.2);background:rgba(248,113,113,.07);color:var(--red)}
+.chip-muted{color:var(--muted)}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--green);box-shadow:0 0 5px rgba(62,207,142,.5)}
+.dot-amber{background:var(--amber)}.dot-cyan{background:var(--cyan);box-shadow:0 0 5px rgba(45,212,191,.5)}
+.empty-state{padding:24px;border-radius:12px;border:1px dashed rgba(255,255,255,.08);text-align:center;color:var(--muted);font-size:13px}
+.stat-card{padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06)}
+.stat-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(238,242,248,.35);margin-bottom:7px}
+.stat-value{font-size:clamp(16px,2.5vw,22px);font-weight:700;font-family:'Geist Mono',monospace;letter-spacing:-.02em}
+.stat-value.flash{color:var(--cyan)}
+.section-head{font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:rgba(238,242,248,.3);margin-bottom:10px}
+.scanline-wrap{position:relative;overflow:hidden}
+.scanline-wrap::after{content:'';position:absolute;left:0;right:0;top:-4px;height:2px;background:linear-gradient(90deg,transparent,rgba(45,212,191,.12),transparent);animation:scanline 3.5s linear infinite;pointer-events:none}
+.chat-bubble-btn{position:fixed;bottom:26px;right:26px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),#3b82f6);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1000;color:#040e1a;transition:transform .18s;box-shadow:0 4px 20px rgba(45,212,191,.25)}
+.chat-bubble-btn:hover{transform:scale(1.07)}
+.chat-unread-badge{position:absolute;top:-3px;right:-3px;background:var(--red);color:#fff;border-radius:50%;width:19px;height:19px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.chat-window{position:fixed;bottom:92px;right:26px;width:340px;max-height:540px;border-radius:18px;z-index:999;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.chat-header{background:linear-gradient(135deg,rgba(14,116,144,.95),rgba(29,78,216,.95));padding:13px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(12px)}
+.chat-header-title{font-size:14px;font-weight:700;color:#fff}
+.chat-close-btn{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.15);border:none;cursor:pointer;color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;transition:.14s}
+.chat-close-btn:hover{background:rgba(255,255,255,.25)}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;background:rgba(4,7,16,.98);display:flex;flex-direction:column;gap:8px;max-height:320px}
+.chat-msg{display:flex;flex-direction:column;animation:msgIn .2s ease-out}
+.chat-msg.admin{align-items:flex-start}.chat-msg.client{align-items:flex-end}
+.chat-bubble-body{max-width:78%;padding:9px 12px;border-radius:12px;font-size:13px;word-break:break-word;line-height:1.5}
+.chat-msg.admin .chat-bubble-body{background:rgba(45,212,191,.09);border:1px solid rgba(45,212,191,.16);border-top-left-radius:3px;color:var(--text)}
+.chat-msg.client .chat-bubble-body{background:rgba(139,142,248,.09);border:1px solid rgba(139,142,248,.16);border-top-right-radius:3px;color:var(--text)}
+.chat-time{font-size:9.5px;color:var(--muted2);margin-top:3px;font-family:'Geist Mono',monospace}
+.chat-input-area{padding:10px 12px;background:rgba(3,5,12,.99);border-top:1px solid rgba(255,255,255,.06)}
+.chat-input-wrap{display:flex;gap:7px}
+.chat-input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'Instrument Sans',sans-serif;outline:none;transition:.15s}
+.chat-input:focus{border-color:rgba(45,212,191,.25)}
+.chat-send-btn{background:linear-gradient(135deg,var(--cyan),#3b82f6);border:none;width:36px;height:36px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#040e1a;font-size:16px;font-weight:700}
+.dialog-wrap{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
+.dialog-card{position:relative;z-index:2;width:min(100%,480px);padding:28px;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+.dialog-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px)}
+.notif-popup{position:fixed;top:18px;right:18px;width:min(90vw,320px);z-index:40;border-radius:16px;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.4)}
+.wallet-input{width:100%;border-radius:10px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);padding:11px 12px;color:var(--text);font-size:12px;font-family:'Geist Mono',monospace;outline:none}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(45,212,191,.2);border-radius:999px}
+@keyframes confetti{0%{transform:translateY(-8px) rotate(0deg);opacity:1}100%{transform:translateY(105vh) rotate(520deg);opacity:0}}
+@keyframes travel{0%{left:-14px;opacity:0}12%{opacity:.75}88%{opacity:.75}100%{left:100%;opacity:0}}
+@keyframes scanline{0%{transform:translateY(-4px);opacity:.5}100%{transform:translateY(100%);opacity:0}}
+@keyframes msgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes markerPulse{0%,100%{opacity:1;box-shadow:0 0 6px rgba(251,191,36,.5)}50%{opacity:.6;box-shadow:0 0 12px rgba(251,191,36,.8)}}
+@keyframes dotPulse{0%,100%{opacity:1;box-shadow:0 0 4px rgba(45,212,191,.6)}50%{opacity:.5;box-shadow:0 0 10px rgba(45,212,191,.9)}}
+@keyframes deltaFade{0%{opacity:1;transform:translateY(0) scale(1)}40%{opacity:.95;transform:translateY(-8px) scale(1.05)}100%{opacity:0;transform:translateY(-22px) scale(.9)}}
+.amount-delta-overlay{position:absolute;top:-4px;right:8px;font-family:'Geist Mono',monospace;font-size:14px;font-weight:700;color:var(--green);pointer-events:none;animation:deltaFade 3.2s ease-out forwards;white-space:nowrap;text-shadow:0 0 12px rgba(62,207,142,.6)}
+@keyframes finalGlowPulse{0%,100%{box-shadow:0 0 8px rgba(248,113,113,.15)}50%{box-shadow:0 0 18px rgba(248,113,113,.3)}}
+.status-node.active{border-color:rgba(45,212,191,.35)!important;background:rgba(45,212,191,.09)!important;box-shadow:0 0 14px rgba(45,212,191,.1)}
+.dot-cyan.pulsing{animation:dotPulse 1.4s ease-in-out infinite}
+@media(max-width:760px){.chat-window{width:calc(100vw - 20px);right:10px;bottom:80px;max-height:60vh}.chat-bubble-btn{width:50px;height:50px;bottom:18px;right:18px}.notif-popup{top:12px;right:12px;width:calc(100vw - 24px)}}
+
+/* ═══════════════════════════════════════════════════════════════
+   VISUAL ENHANCEMENT LAYER — conservative pass
+   All tokens reference existing system vars. Nothing structural.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Extended tokens */
+:root{
+    --glow-cyan:0 0 22px rgba(45,212,191,.17);
+    --glow-violet:0 0 22px rgba(139,142,248,.14);
+    --glow-green:0 0 18px rgba(62,207,142,.16);
+    --glow-amber:0 0 18px rgba(251,191,36,.16);
+    --glow-red:0 0 18px rgba(248,113,113,.14);
+    --t-fast:110ms cubic-bezier(.4,0,.2,1);
+    --t-base:200ms cubic-bezier(.4,0,.2,1);
+    --t-slow:360ms cubic-bezier(.4,0,.2,1);
+    --highlight-line:inset 0 1px 0 rgba(255,255,255,.07);
+    --card-shadow:0 6px 28px rgba(0,0,0,.32);
+}
+
+/* Body ambient — richer dual gradient */
+body::after{
+    background:
+        radial-gradient(ellipse 65% 45% at 12% 0%,rgba(45,212,191,.09) 0%,transparent 60%),
+        radial-gradient(ellipse 55% 55% at 88% 100%,rgba(139,142,248,.07) 0%,transparent 60%),
+        radial-gradient(ellipse 40% 30% at 55% 50%,rgba(91,156,246,.03) 0%,transparent 55%)
+}
+
+/* Glass surface — gradient fill + highlight edge */
+.glass{
+    background:linear-gradient(160deg,rgba(13,19,34,.96),rgba(8,12,24,.97));
+    box-shadow:var(--card-shadow),var(--highlight-line)
+}
+.glass2{
+    background:linear-gradient(160deg,rgba(9,14,24,.97),rgba(6,10,20,.98));
+    box-shadow:var(--card-shadow),var(--highlight-line)
+}
+
+/* Stat cards — depth + hover lift */
+.stat-card{
+    background:linear-gradient(145deg,rgba(255,255,255,.032),rgba(255,255,255,.014));
+    box-shadow:0 2px 14px rgba(0,0,0,.22),var(--highlight-line);
+    transition:transform var(--t-base),box-shadow var(--t-base)
+}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,0,0,.28),var(--highlight-line)}
+
+/* Number columns — tabular figures */
+.stat-value,.mono{font-feature-settings:'tnum'}
+
+/* Status rail nodes — richer hover + active glow */
+.status-node{
+    box-shadow:0 2px 8px rgba(0,0,0,.22);
+    transition:transform var(--t-base),border-color var(--t-base),background var(--t-base),box-shadow var(--t-base)
+}
+.status-node:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.28),0 0 0 1px rgba(45,212,191,.1)}
+.status-node.active{
+    box-shadow:var(--glow-cyan),0 2px 14px rgba(0,0,0,.22),var(--highlight-line)!important;
+    background:linear-gradient(145deg,rgba(45,212,191,.1),rgba(45,212,191,.06))!important
+}
+.status-node.done{box-shadow:0 0 14px rgba(62,207,142,.1),0 2px 8px rgba(0,0,0,.18)}
+.status-node.blocked-node{box-shadow:0 0 12px rgba(251,191,36,.1),0 2px 8px rgba(0,0,0,.18)}
+
+/* Progress bar — animated shimmer on the moving fill */
+.prog-fill.moving{background:linear-gradient(90deg,var(--cyan),#5b9cf6,var(--violet));background-size:200% 100%;animation:barFlow 3s linear infinite}
+.prog-fill.moving::before{content:'';position:absolute;top:0;bottom:0;left:-80px;width:80px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);animation:progShimmer 2.4s cubic-bezier(.4,0,.6,1) infinite}
+@keyframes barFlow{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+@keyframes progShimmer{0%{left:-80px;opacity:0}20%{opacity:1}80%{opacity:1}100%{left:110%;opacity:0}}
+
+/* Progress track — subtle inner glow */
+.prog-track{box-shadow:inset 0 1px 3px rgba(0,0,0,.4)}
+
+
+/* Requirement box — elevated */
+.requirement-box{
+    background:linear-gradient(145deg,rgba(251,191,36,.06),rgba(251,191,36,.03));
+    box-shadow:0 2px 12px rgba(0,0,0,.18),inset 0 1px 0 rgba(251,191,36,.1)
+}
+
+/* ─── LOGIN SCREEN — premium ambient ────────────────────────────────── */
+.login-shell{position:relative;overflow:hidden}
+/* Ambient mesh background — slow drifting blobs */
+.login-shell::before{
+    content:'';position:absolute;inset:-10%;pointer-events:none;z-index:0;
+    background:
+        radial-gradient(ellipse 38% 30% at 22% 28%,rgba(45,212,191,.10),transparent 60%),
+        radial-gradient(ellipse 32% 28% at 78% 18%,rgba(91,156,246,.08),transparent 60%),
+        radial-gradient(ellipse 36% 30% at 75% 82%,rgba(62,207,142,.07),transparent 60%),
+        radial-gradient(ellipse 30% 26% at 18% 78%,rgba(91,156,246,.05),transparent 60%);
+    animation:loginMeshDrift 22s ease-in-out infinite alternate;
+    filter:blur(8px);
+}
+/* Faint dot grid — layered above blobs, masked to a soft vignette */
+.login-shell::after{
+    content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);
+    background-size:28px 28px;
+    mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,#000 40%,transparent 85%);
+    -webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,#000 40%,transparent 85%);
+}
+@keyframes loginMeshDrift{
+    0%{transform:translate(0,0) scale(1)}
+    50%{transform:translate(-2%,1.5%) scale(1.04)}
+    100%{transform:translate(1.8%,-1.2%) scale(1.02)}
+}
+
+/* Card stack wrapper to host card + ambient corridor below */
+.login-stack{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:14px;width:min(100%,460px)}
+
+/* Login card — layered depth */
+.login-card{
+    background:linear-gradient(160deg,rgba(11,17,30,.97),rgba(7,11,22,.98));
+    box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04),var(--highlight-line);
+    width:100%;position:relative;overflow:hidden
+}
+/* Corner ornaments */
+.login-card::before,.login-card::after{
+    content:'';position:absolute;width:18px;height:18px;border:1px solid rgba(45,212,191,.32);pointer-events:none;
+}
+.login-card::before{top:14px;left:14px;border-right:none;border-bottom:none;border-top-left-radius:6px}
+.login-card::after{bottom:14px;right:14px;border-left:none;border-top:none;border-bottom-right-radius:6px}
+/* Top accent line — slow cyan sweep */
+.login-card .login-accent{
+    position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent 0%,rgba(45,212,191,0) 25%,rgba(45,212,191,.6) 50%,rgba(45,212,191,0) 75%,transparent 100%);
+    background-size:200% 100%;
+    animation:loginAccentSweep 6s linear infinite;
+}
+@keyframes loginAccentSweep{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
+/* Status strip on top of card */
+.login-status{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:22px;
+    padding:8px 12px;border-radius:10px;
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);
+    font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase
+}
+.login-status-item{display:flex;align-items:center;gap:6px;color:rgba(238,242,248,.45)}
+.login-status-dot{width:6px;height:6px;border-radius:50%}
+.login-status-dot.green{background:#3ecf8e;box-shadow:0 0 8px #3ecf8e;animation:dotBreath 2.4s ease-in-out infinite}
+.login-status-dot.cyan{background:#2dd4bf;box-shadow:0 0 8px #2dd4bf;animation:dotBreath 2.6s ease-in-out infinite .3s}
+.login-status-dot.amber{background:#fbbf24;box-shadow:0 0 8px #fbbf24}
+.login-status-val{color:rgba(238,242,248,.78);font-weight:600}
+
+/* Login logo — refined with rotating ring */
+.login-logo{position:relative;margin-bottom:18px}
+.login-logo::before{
+    content:'';position:absolute;inset:-7px;border-radius:18px;
+    border:1px dashed rgba(45,212,191,.28);
+    animation:logoRotate 14s linear infinite;
+    pointer-events:none
+}
+.login-logo::after{
+    content:'';position:absolute;inset:-12px;border-radius:22px;
+    border:1px solid rgba(45,212,191,.10);
+    pointer-events:none
+}
+@keyframes logoRotate{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* Login field focus glow */
+.login-field-wrap{position:relative;margin-bottom:14px}
+.login-field{padding-right:42px}
+.login-field:focus{border-color:rgba(45,212,191,.35);background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(45,212,191,.08),0 0 16px rgba(45,212,191,.06)}
+.login-field-icon{
+    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    width:18px;height:18px;color:rgba(45,212,191,.6);pointer-events:none;
+    transition:color .2s
+}
+.login-field:focus ~ .login-field-icon{color:rgba(45,212,191,1)}
+.login-field-valid{
+    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    color:#3ecf8e;font-size:14px;pointer-events:none;
+    opacity:0;transition:opacity .2s
+}
+.login-field-wrap.valid .login-field-valid{opacity:1}
+.login-field-wrap.valid .login-field-icon{opacity:0}
+
+/* Handshake mini-corridor under input */
+.login-handshake{
+    margin:18px 0 22px;padding:14px 12px;
+    border-radius:12px;
+    background:linear-gradient(150deg,rgba(45,212,191,.04),rgba(91,156,246,.025));
+    border:1px solid rgba(45,212,191,.08);
+    position:relative;overflow:hidden
+}
+.login-handshake-label{
+    font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+    color:rgba(238,242,248,.32);margin-bottom:8px;
+    display:flex;justify-content:space-between;align-items:center
+}
+.login-handshake-eta{color:rgba(45,212,191,.6)}
+
+/* Footer — security row */
+.login-footer{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px;
+    padding-top:16px;border-top:1px solid rgba(255,255,255,.05);
+    font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.06em;
+    color:rgba(238,242,248,.32)
+}
+.login-footer-chain{display:flex;align-items:center;gap:8px}
+.login-footer-chain svg{color:rgba(45,212,191,.5)}
+.login-footer-eth{display:flex;align-items:center;gap:6px;color:rgba(238,242,248,.55)}
+.login-footer-eth strong{color:#fff;font-weight:600}
+
+/* Beneath the card — ETH ticker chip + audit chip */
+.login-meta-row{
+    display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+    font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:rgba(238,242,248,.4)
+}
+.login-meta-chip{
+    display:flex;align-items:center;gap:6px;
+    padding:6px 12px;border-radius:999px;
+    background:rgba(11,17,30,.6);border:1px solid rgba(255,255,255,.06);
+    backdrop-filter:blur(8px)
+}
+
+/* Loading — checking access spinner inside button */
+.login-spinner{
+    display:inline-block;width:12px;height:12px;border-radius:50%;
+    border:1.5px solid rgba(4,17,30,.3);border-top-color:#04111e;
+    animation:loginSpin .7s linear infinite;margin-right:8px;vertical-align:-2px
+}
+@keyframes loginSpin{to{transform:rotate(360deg)}}
+
+/* Main button — shimmer sweep on hover */
+.btn-main{position:relative;overflow:hidden;box-shadow:0 3px 18px rgba(45,212,191,.22),var(--highlight-line)}
+.btn-main::before{content:'';position:absolute;top:0;left:-100%;bottom:0;width:55%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent);transition:left .55s cubic-bezier(.4,0,.2,1);pointer-events:none}
+.btn-main:hover{box-shadow:0 6px 26px rgba(45,212,191,.32);transform:translateY(-1px)}
+.btn-main:hover::before{left:130%}
+.btn-success-main{box-shadow:0 3px 18px rgba(62,207,142,.2),var(--highlight-line)}
+.btn-success-main:hover{box-shadow:0 6px 24px rgba(62,207,142,.3)}
+
+/* Chips — gradient tint */
+.chip-cyan{background:linear-gradient(135deg,rgba(45,212,191,.11),rgba(45,212,191,.06))}
+.chip-green{background:linear-gradient(135deg,rgba(62,207,142,.11),rgba(62,207,142,.06))}
+.chip-amber{background:linear-gradient(135deg,rgba(251,191,36,.11),rgba(251,191,36,.06))}
+.chip-red{background:linear-gradient(135deg,rgba(248,113,113,.11),rgba(248,113,113,.06))}
+
+/* Live dot — breathing animation */
+.dot-green{animation:dotBreath 2.8s ease-in-out infinite}
+.dot-cyan{animation:dotBreath 2.4s ease-in-out infinite}
+@keyframes dotBreath{0%,100%{box-shadow:0 0 4px currentColor}50%{box-shadow:0 0 10px currentColor,0 0 18px currentColor}}
+
+/* Tab buttons — transition polish */
+.tab-btn{transition:background var(--t-fast),border-color var(--t-fast),color var(--t-fast),box-shadow var(--t-fast)}
+.tab-btn.active{box-shadow:0 0 12px rgba(45,212,191,.12)}
+
+/* Timeline items — hover state */
+.timeline-item{transition:border-color var(--t-fast),background var(--t-fast)}
+.timeline-item:hover{border-color:rgba(45,212,191,.16);background:rgba(45,212,191,.03)}
+
+/* Status card — elevation */
+.status-card{
+    background:linear-gradient(145deg,rgba(8,12,22,.97),rgba(6,9,18,.98));
+    box-shadow:0 4px 20px rgba(0,0,0,.28),var(--highlight-line)
+}
+
+/* Chat bubble button — pulse ring */
+.chat-bubble-btn{box-shadow:0 4px 24px rgba(45,212,191,.28),0 0 0 0 rgba(45,212,191,.3);animation:chatRing 3s ease-out infinite}
+@keyframes chatRing{0%,70%{box-shadow:0 4px 24px rgba(45,212,191,.28),0 0 0 0 rgba(45,212,191,.3)}75%{box-shadow:0 4px 24px rgba(45,212,191,.28),0 0 0 10px rgba(45,212,191,.0)}100%{box-shadow:0 4px 24px rgba(45,212,191,.28),0 0 0 0 rgba(45,212,191,0)}}
+
+/* Chat send button */
+.chat-send-btn{box-shadow:0 2px 12px rgba(45,212,191,.2);transition:transform .14s,box-shadow .14s}
+.chat-send-btn:hover{transform:scale(1.06);box-shadow:0 4px 18px rgba(45,212,191,.32)}
+
+/* Delta overlay text shadow — already has it, just reinforce */
+.amount-delta-overlay{text-shadow:0 0 16px rgba(62,207,142,.7),0 0 32px rgba(62,207,142,.4)}
+
+/* Notification popup elevation */
+.notif-popup{box-shadow:0 20px 50px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06)}
+
+/* Dialog card */
+.dialog-card{box-shadow:0 32px 80px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.06),var(--highlight-line)}
+
+/* Empty state — soft */
+.empty-state{border-color:rgba(45,212,191,.08);background:rgba(45,212,191,.015)}
+
+/* ─── SETTLEMENT CORRIDOR CARD ──────────────────────────────────────── */
+.corridor-card{
+    position:relative;overflow:hidden;border-radius:20px;margin-bottom:12px;
+    background:
+        radial-gradient(ellipse 80% 60% at 50% 0%,rgba(45,212,191,.09) 0%,transparent 60%),
+        linear-gradient(165deg,rgba(13,19,34,.98),rgba(6,10,20,.99));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 0 1px rgba(45,212,191,.06),inset 0 1px 0 rgba(255,255,255,.07)
+}
+.corridor-card::before{
+    content:'';position:absolute;inset:0;
+    background-image:linear-gradient(rgba(45,212,191,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,.04) 1px,transparent 1px);
+    background-size:32px 32px;
+    mask-image:radial-gradient(ellipse 60% 80% at 50% 50%,#000 30%,transparent 80%);
+    -webkit-mask-image:radial-gradient(ellipse 60% 80% at 50% 50%,#000 30%,transparent 80%);
+    pointer-events:none
+}
+.corr-inner{padding:clamp(14px,3vw,20px);position:relative;z-index:1}
+.corr-top-tag{
+    position:absolute;left:clamp(12px,3vw,18px);top:clamp(12px,3vw,16px);
+    font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+    color:rgba(238,242,248,.28);font-family:'Geist Mono',monospace;white-space:nowrap
+}
+.corr-head{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    margin-top:22px;margin-bottom:8px;gap:10px;flex-wrap:wrap
+}
+.corr-title{font-size:clamp(14px,2.5vw,17px);font-weight:800;letter-spacing:-.025em;line-height:1.2}
+.corr-sub{font-size:clamp(10px,1.5vw,11.5px);color:var(--muted);margin-top:3px;line-height:1.5}
+.corr-stats{display:flex;gap:14px;font-family:'Geist Mono',monospace;flex-shrink:0}
+.corr-stat{text-align:right}
+.corr-stat-lbl{font-size:8.5px;letter-spacing:.1em;color:var(--muted2);margin-bottom:2px;text-transform:uppercase}
+.corr-stat-val{font-size:13px;font-weight:700;line-height:1}
+
+/* Corridor SVG wrapper — horizontal scroll on mobile */
+.corr-svg-wrap{
+    overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+    scroll-behavior:smooth;padding-bottom:2px;
+    scrollbar-width:thin;scrollbar-color:rgba(45,212,191,.25) transparent
+}
+.corr-svg-wrap::-webkit-scrollbar{height:3px}
+.corr-svg-wrap::-webkit-scrollbar-thumb{background:rgba(45,212,191,.25);border-radius:999px}
+
+/* Tablet+ adaptations */
+@media(max-width:520px){
+    .corr-title{font-size:14px}
+    .corr-head{margin-top:18px}
+}
+
+/* Hide horizontal corridor on phones, show vertical instead */
+.corr-svg-wrap{display:block}
+.corr-vertical{display:none}
+@media(max-width:640px){
+    .corr-svg-wrap{display:none}
+    .corr-vertical{display:block}
+    .corr-stats{display:none} /* compact stat pills replace the wide stats */
+    .corr-pills{display:flex}
+}
+
+/* Phone-only login & header tweaks */
+@media(max-width:480px){
+    .login-card{padding:24px 22px;border-radius:20px}
+    .login-card h1{font-size:21px}
+    .login-stack{gap:10px}
+    .screen-nav{top:8px;right:8px;transform:scale(.85);transform-origin:top right}
+}
+
+/* Compact stat pills (phone) — show under title */
+.corr-pills{display:none;gap:6px;margin-top:8px;flex-wrap:wrap;font-family:'Geist Mono',monospace}
+.corr-pill{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:4px 9px;border-radius:999px;font-size:9.5px;letter-spacing:.06em;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+    color:rgba(238,242,248,.78)
+}
+.corr-pill b{font-weight:700;letter-spacing:0}
+.corr-pill .corr-pill-lbl{color:var(--muted2);text-transform:uppercase;font-size:8.5px}
+
+/* Vertical corridor — phone layout */
+.corr-vertical{position:relative;margin-top:14px}
+.corr-vline{
+    position:absolute;left:8px;top:14px;bottom:14px;width:2px;
+    background:linear-gradient(180deg,
+        rgba(45,212,191,.12) 0%,
+        rgba(45,212,191,.22) 50%,
+        rgba(91,156,246,.12) 100%);
+    border-radius:2px;overflow:visible
+}
+/* Active progress fill — height = displayProgress% */
+.corr-vfill{
+    position:absolute;left:0;right:0;top:0;
+    background:linear-gradient(180deg,#3ecf8e 0%,#2dd4bf 60%,#5b9cf6 100%);
+    border-radius:2px;
+    box-shadow:0 0 8px rgba(45,212,191,.55);
+    transition:height 120ms linear;will-change:height
+}
+/* Lead packet on vertical line */
+.corr-vpacket{
+    position:absolute;left:50%;width:8px;height:8px;border-radius:50%;
+    background:#fff;transform:translate(-50%,-50%);
+    box-shadow:0 0 6px #2dd4bf,0 0 14px #2dd4bf;
+    transition:top 120ms linear;z-index:2;will-change:top
+}
+.corr-vrow{
+    position:relative;display:grid;grid-template-columns:42px 1fr auto;align-items:center;
+    gap:10px;padding:8px 0;min-height:42px
+}
+.corr-vrow::before{
+    content:'';position:absolute;left:9px;top:50%;width:14px;height:1px;
+    background:linear-gradient(90deg,rgba(45,212,191,.28),rgba(45,212,191,.04));
+    transform:translateY(-50%);z-index:0;pointer-events:none
+}
+.corr-vnode{
+    position:relative;width:26px;height:26px;border-radius:50%;
+    margin-left:12px;background:rgba(13,19,34,.98);
+    border:1.5px solid rgba(255,255,255,.18);
+    display:grid;place-items:center;
+    font-family:'Geist Mono',monospace;font-size:10px;font-weight:700;
+    color:rgba(238,242,248,.4);z-index:1;
+    transition:transform .3s ease
+}
+.corr-vnode.done{
+    border-color:#3ecf8e;color:#3ecf8e;
+    background:rgba(62,207,142,.12);
+    box-shadow:0 0 6px rgba(62,207,142,.4)
+}
+.corr-vnode.active{
+    border-color:#2dd4bf;color:#2dd4bf;border-width:2px;
+    background:rgba(45,212,191,.14);
+    box-shadow:0 0 10px rgba(45,212,191,.55);
+    transform:scale(1.1)
+}
+.corr-vnode.active::after{
+    content:'';position:absolute;inset:-5px;border-radius:50%;
+    border:1px solid rgba(45,212,191,.4);
+    animation:ringPulse 2.8s ease-out infinite
+}
+.corr-vnode.blocked{border-color:#fbbf24;color:#fbbf24}
+.corr-vnode.final{border-color:#f87171;color:#f87171}
+.corr-vinfo{min-width:0}
+.corr-vtitle{
+    font-size:12px;font-weight:600;letter-spacing:-.01em;line-height:1.25;
+    color:var(--text);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.corr-vrow.active .corr-vtitle{color:var(--cyan)}
+.corr-vrow.done .corr-vtitle{color:#cfe9d8}
+.corr-vrow.dim .corr-vtitle{color:rgba(238,242,248,.5)}
+.corr-vmeta{
+    font-size:9.5px;color:var(--muted2);
+    font-family:'Geist Mono',monospace;letter-spacing:.04em;
+    margin-top:2px;text-transform:uppercase
+}
+.corr-vpct{
+    font-family:'Geist Mono',monospace;font-size:10px;
+    color:rgba(238,242,248,.36);letter-spacing:.02em;
+    padding-left:6px
+}
+.corr-vrow.done .corr-vpct{color:#3ecf8e}
+.corr-vrow.active .corr-vpct{color:#2dd4bf}
+
+/* Stat cards — 2-col on mobile, 4-col on desktop */
+.stats-4{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+@media(max-width:640px){.stats-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:360px){.stats-4{grid-template-columns:1fr}}
+
+/* Bottom grid — stack on mobile */
+.bottom-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:10px}
+@media(max-width:700px){.bottom-grid{grid-template-columns:1fr}}
+
+/* Mobile: main padding tighter */
+@media(max-width:480px){
+    .status-node{min-width:118px;padding:10px 11px}
+    .status-rail{gap:8px}
+    .prog-track{height:14px}
+}
+
+/* ─── STAT CARD EDGE ACCENTS ─────────────────────────────────────────── */
+.stat-card{position:relative;overflow:hidden}
+.stat-card::after{
+    content:'';position:absolute;left:0;top:14%;bottom:14%;width:2px;border-radius:0 2px 2px 0;
+    background:linear-gradient(180deg,transparent,var(--amber),transparent);opacity:.52
+}
+.stats-4 .stat-card:nth-child(2)::after{background:linear-gradient(180deg,transparent,var(--cyan),transparent)}
+.stats-4 .stat-card:nth-child(3)::after{background:linear-gradient(180deg,transparent,var(--green),transparent)}
+
+/* ─── STATUS NODE ACTIVE RING PULSE ──────────────────────────────────── */
+.status-node.active::after{
+    content:'';position:absolute;inset:-4px;border-radius:16px;
+    border:1px solid rgba(45,212,191,.28);
+    animation:ringPulse 3s ease-out infinite;pointer-events:none;z-index:0
+}
+@keyframes ringPulse{0%{opacity:.7;transform:scale(.96)}100%{opacity:0;transform:scale(1.08)}}
+
+/* Active node icon: gradient glow */
+.status-node.active .node-icon{
+    background:linear-gradient(135deg,rgba(45,212,191,.22),rgba(91,156,246,.18))!important;
+    box-shadow:inset 0 0 0 1px rgba(45,212,191,.35),0 0 12px rgba(45,212,191,.22);
+    color:var(--cyan)!important
+}
+
+/* Typewriter caret on active node subtitle */
+.status-node.active .node-sub::after{
+    content:'_';margin-left:2px;
+    animation:cursorBlink 1.4s steps(1) infinite;color:var(--cyan)
+}
+@keyframes cursorBlink{50%{opacity:0}}
+
+/* ─── SPARKLINES (stat card corner decoration) ───────────────────────── */
+.stat-spark{position:absolute;right:9px;bottom:9px;width:50px;height:17px;opacity:.48;pointer-events:none}
+
+/* ─── ETH GAS BATTERY ───────────────────────────────────────────────── */
+.prog-batt-wrap{display:block}
+@media(max-width:600px){.prog-batt-wrap{grid-template-columns:1fr}}
+.eth-battery{position:relative;border-radius:14px;padding:14px;
+    background:linear-gradient(180deg,rgba(15,22,36,.75),rgba(6,11,20,.95));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 24px rgba(0,0,0,.4)}
+.transfer-gas{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07)}
+.transfer-gas .eth-battery{padding:12px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 6px 18px rgba(0,0,0,.32)}
+@media(max-width:600px){.eth-battery{display:block}}
+.eth-glyph{width:26px;height:26px;border-radius:50%;
+    background:radial-gradient(circle at 30% 30%,#7b8aff,#3b4eb8);
+    color:#fff;font-weight:800;display:grid;place-items:center;font-size:14px;flex-shrink:0;
+    box-shadow:0 0 10px rgba(123,138,255,.5),inset 0 1px 0 rgba(255,255,255,.3);
+    animation:ethBob 3s ease-in-out infinite}
+@keyframes ethBob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-2px) rotate(4deg)}}
+.batt-cell{position:relative;height:92px;border-radius:10px;
+    background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.8));
+    border:1px solid rgba(255,255,255,.1);overflow:hidden;
+    box-shadow:inset 0 0 12px rgba(0,0,0,.6)}
+.batt-cell::before{content:'';position:absolute;left:50%;top:-5px;width:30px;height:5px;
+    background:rgba(255,255,255,.12);border-radius:2px 2px 0 0;transform:translateX(-50%)}
+.batt-fill{position:absolute;left:0;right:0;bottom:0;
+    background:linear-gradient(180deg,#7b8aff 0%,#5b9cf6 35%,#2dd4bf 100%);
+    transition:height 1.2s cubic-bezier(.22,.61,.36,1);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 0 18px rgba(91,156,246,.4)}
+.batt-fill.warn{background:linear-gradient(180deg,rgba(251,191,36,.9),rgba(251,191,36,.5));box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 10px rgba(251,191,36,.5)}
+.batt-fill.crit{background:linear-gradient(180deg,rgba(248,113,113,.9),rgba(248,113,113,.5));box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 10px rgba(248,113,113,.5)}
+.batt-fill::before{content:'';position:absolute;left:0;right:0;top:-3px;height:6px;
+    background:rgba(255,255,255,.5);border-radius:50%;filter:blur(2px);
+    animation:battSurface 3s ease-in-out infinite}
+@keyframes battSurface{0%,100%{transform:translateY(0) scaleX(1)}50%{transform:translateY(-1px) scaleX(.97)}}
+.batt-fill::after{content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(45deg,transparent 0 6px,rgba(255,255,255,.06) 6px 12px);
+    animation:battShimmer 4s linear infinite}
+@keyframes battShimmer{from{background-position:0 0}to{background-position:24px 0}}
+.batt-bubbles{position:absolute;inset:0;pointer-events:none}
+.batt-bubbles span{position:absolute;bottom:-6px;width:5px;height:5px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.9),rgba(255,255,255,.2));
+    animation:battBub 4s linear infinite}
+.batt-bubbles span:nth-child(1){left:18%;animation-duration:4.2s}
+.batt-bubbles span:nth-child(2){left:35%;animation-duration:5s;animation-delay:1.1s;width:3px;height:3px}
+.batt-bubbles span:nth-child(3){left:55%;animation-duration:3.6s;animation-delay:.4s}
+.batt-bubbles span:nth-child(4){left:72%;animation-duration:4.8s;animation-delay:2.2s;width:4px;height:4px}
+.batt-bubbles span:nth-child(5){left:88%;animation-duration:5.4s;animation-delay:.8s;width:3px;height:3px}
+@keyframes battBub{0%{bottom:-6px;opacity:0}10%{opacity:.9}90%{opacity:.6}100%{bottom:105%;opacity:0}}
+.batt-tickmarks{position:absolute;right:5px;top:6px;bottom:6px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.batt-tickmarks i{display:block;width:6px;height:1px;background:rgba(255,255,255,.25)}
+.batt-tickmarks i:nth-child(odd){width:9px}
+.batt-shine{position:absolute;left:6px;top:0;bottom:0;width:8px;border-radius:4px;
+    background:linear-gradient(180deg,rgba(255,255,255,.18),transparent 60%);pointer-events:none}
+.batt-bars{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;margin-top:10px;height:12px;align-items:end}
+.batt-bars i{display:block;background:linear-gradient(180deg,var(--cyan),rgba(45,212,191,.3));
+    border-radius:1px;width:100%;animation:battBar 2.8s ease-in-out infinite}
+@keyframes battBar{0%,100%{height:30%;opacity:.4}50%{height:100%;opacity:1}}
+.step-anim{display:inline-grid;place-items:center;width:1.45em;height:1.45em;line-height:1;transform-origin:50% 50%;will-change:transform,filter,opacity}
+.step-anim-spark,.step-anim-compass{animation:iconPulse 2s ease-in-out infinite}
+.step-anim-bridge,.step-anim-relay{animation:iconSlide 1.8s ease-in-out infinite}
+.step-anim-graph,.step-anim-signal{animation:iconBars 1.6s ease-in-out infinite}
+.step-anim-docs,.step-anim-scan,.step-anim-eye{animation:iconScan 2s linear infinite}
+.step-anim-check,.step-anim-shield,.step-anim-lock,.step-anim-vault{animation:iconSecure 2.4s ease-in-out infinite}
+.step-anim-dust,.step-anim-wave{animation:iconDrift 2.2s ease-in-out infinite}
+.step-anim-hammer,.step-anim-gears{animation:iconWork 1.4s ease-in-out infinite}
+.step-anim-key,.step-anim-chain,.step-anim-node{animation:iconTwist 2.6s ease-in-out infinite}
+.step-anim-star,.step-anim-crystal,.step-anim-prism,.step-anim-hex{animation:iconShine 2.1s ease-in-out infinite}
+.step-anim-bolt,.step-anim-zap,.step-anim-flame{animation:iconFlash 1.45s ease-in-out infinite}
+.step-anim-globe,.step-anim-orbit,.step-anim-atom{animation:iconOrbit 2.8s linear infinite}
+@keyframes iconPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 rgba(45,212,191,0))}50%{transform:scale(1.16);filter:drop-shadow(0 0 8px rgba(45,212,191,.55))}}
+@keyframes iconSlide{0%,100%{transform:translateX(-1px)}50%{transform:translateX(2px)}}
+@keyframes iconBars{0%,100%{transform:scaleY(.82)}50%{transform:scaleY(1.12)}}
+@keyframes iconScan{0%,100%{filter:brightness(.8)}50%{filter:brightness(1.55) drop-shadow(0 0 7px rgba(91,156,246,.45))}}
+@keyframes iconSecure{0%,100%{transform:scale(1)}50%{transform:scale(.92)}}
+@keyframes iconDrift{0%,100%{transform:translateY(1px) rotate(-3deg);opacity:.75}50%{transform:translateY(-2px) rotate(3deg);opacity:1}}
+@keyframes iconWork{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(8deg)}}
+@keyframes iconTwist{0%,100%{transform:rotate(0)}50%{transform:rotate(16deg)}}
+@keyframes iconShine{0%,100%{filter:brightness(.9)}50%{filter:brightness(1.6) drop-shadow(0 0 9px rgba(255,255,255,.35))}}
+@keyframes iconFlash{0%,100%{opacity:.72;transform:scale(1)}45%{opacity:1;transform:scale(1.2)}55%{opacity:.58;transform:scale(.95)}}
+@keyframes iconOrbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   POLISH PASS — type, color, material refinement
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* TYPE — micro-typography */
+body{
+    font-feature-settings:"ss01","cv01","cv11","kern","liga";
+    font-optical-sizing:auto;
+    text-rendering:geometricPrecision;
+    letter-spacing:-.005em;
+}
+.mono{
+    font-feature-settings:"tnum","zero","ss01","ss03","kern";
+    font-variant-numeric:tabular-nums slashed-zero;
+}
+/* All numeric values get tabular figures so they don't jiggle */
+.stat-value,.corr-stat-val,.corr-vpct,.corr-pill b,.batt-cell + div b,
+.prog-pct,.prog-fill-text{font-variant-numeric:tabular-nums slashed-zero}
+
+/* Eyebrows / labels — tighter optical caps */
+.stat-label,.corr-stat-lbl,.corr-pill-lbl,.corr-vmeta,.corr-top-tag,
+.section-head,.login-label,.login-handshake-label{
+    font-feature-settings:"cpsp","kern";
+    text-transform:uppercase;letter-spacing:.115em;
+}
+
+/* Headings — sharper optical contrast */
+h1,h2,h3,.corr-title,.login-card h1{
+    letter-spacing:-.028em;
+    font-feature-settings:"ss01","ss03","kern","liga","calt";
+}
+
+/* Body copy — pretty wrapping */
+p,.corr-sub,.login-card p{text-wrap:pretty}
+
+/* COLOR — refined token shifts */
+:root{
+    /* slightly cooler, deeper background; richer text */
+    --bg:#05090f;
+    --text:#f0f3f9;
+    /* subtle warm-cyan refinement (still on brand) */
+    --cyan:#33ddc6;
+    --cyan-deep:#1bb5a3;
+    /* premium accent gradient stops */
+    --grad-cyan:linear-gradient(135deg,#3ddccc 0%,#5b9cf6 55%,#8b8ef8 100%);
+    --grad-cyan-soft:linear-gradient(135deg,rgba(61,220,204,.18),rgba(91,156,246,.14) 60%,rgba(139,142,248,.10));
+    /* premium edge tokens */
+    --edge-bright:inset 0 1px 0 rgba(255,255,255,.085),inset 0 -1px 0 rgba(0,0,0,.4);
+    --edge-soft:inset 0 1px 0 rgba(255,255,255,.05);
+    /* hairlines */
+    --hairline:rgba(255,255,255,.06);
+    --hairline-bright:rgba(255,255,255,.11);
+}
+
+/* MATERIAL — premium glass + edge sheen */
+.glass,.glass2{
+    background:
+        radial-gradient(ellipse 100% 70% at 50% -10%,rgba(45,212,191,.04) 0%,transparent 70%),
+        linear-gradient(165deg,rgba(13,19,34,.97),rgba(7,11,22,.98));
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.05) inset,
+        0 -1px 0 rgba(0,0,0,.35) inset,
+        0 8px 24px rgba(0,0,0,.32),
+        0 24px 60px rgba(0,0,0,.28);
+}
+.glass2{background:linear-gradient(165deg,rgba(9,14,24,.98),rgba(5,9,18,.99))}
+
+/* Stat card — refined material with optical depth */
+.stat-card{
+    background:
+        radial-gradient(ellipse 90% 80% at 50% -20%,rgba(255,255,255,.04),transparent 70%),
+        linear-gradient(150deg,rgba(255,255,255,.035) 0%,rgba(255,255,255,.012) 60%,rgba(255,255,255,.005) 100%);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.06) inset,
+        0 -1px 0 rgba(0,0,0,.32) inset,
+        0 2px 14px rgba(0,0,0,.22),
+        0 12px 32px rgba(0,0,0,.18);
+}
+.stat-card:hover{
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.075) inset,
+        0 -1px 0 rgba(0,0,0,.32) inset,
+        0 6px 22px rgba(0,0,0,.28),
+        0 16px 40px rgba(0,0,0,.22);
+}
+
+/* Stat values — display weight tweak */
+.stat-value{
+    font-weight:700;letter-spacing:-.022em;
+    text-shadow:0 1px 0 rgba(0,0,0,.2);
+}
+
+/* Corridor card — deeper material */
+.corridor-card{
+    background:
+        radial-gradient(ellipse 80% 60% at 50% 0%,rgba(45,212,191,.10) 0%,transparent 60%),
+        radial-gradient(ellipse 50% 50% at 100% 100%,rgba(91,156,246,.05) 0%,transparent 70%),
+        linear-gradient(165deg,rgba(13,19,34,.98),rgba(5,9,18,.995));
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.07) inset,
+        0 -1px 0 rgba(0,0,0,.45) inset,
+        0 24px 60px rgba(0,0,0,.5),
+        0 0 0 1px rgba(45,212,191,.06);
+}
+
+/* Buttons — premium pillow */
+.btn-main{
+    background:linear-gradient(180deg,#3ddccc,#1bb5a3);
+    color:#031318;font-weight:700;letter-spacing:-.005em;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.35) inset,
+        0 -1px 0 rgba(0,0,0,.25) inset,
+        0 3px 18px rgba(45,212,191,.28),
+        0 8px 22px rgba(45,212,191,.18);
+}
+.btn-main:hover{
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.4) inset,
+        0 -1px 0 rgba(0,0,0,.25) inset,
+        0 6px 26px rgba(45,212,191,.36),
+        0 12px 30px rgba(45,212,191,.22);
+}
+
+/* Login card — premium material */
+.login-card{
+    background:
+        radial-gradient(ellipse 100% 60% at 50% 0%,rgba(45,212,191,.08),transparent 60%),
+        linear-gradient(160deg,rgba(11,17,30,.97),rgba(5,9,18,.99));
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.08) inset,
+        0 -1px 0 rgba(0,0,0,.5) inset,
+        0 40px 90px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.04);
+}
+
+/* Status nodes — refined material */
+.status-node{
+    background:
+        linear-gradient(150deg,rgba(255,255,255,.03),rgba(255,255,255,.008));
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.05) inset,
+        0 -1px 0 rgba(0,0,0,.28) inset,
+        0 2px 8px rgba(0,0,0,.22);
+}
+
+/* Chips — refined */
+.chip{
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 -1px 0 rgba(0,0,0,.18) inset;
+}
+
+/* Hairline dividers — replace harsh borders */
+.timeline-item,.glass[style*="border-radius"],.activity-row{
+    border-color:var(--hairline)
+}
+
+/* Focus ring — premium cyan halo */
+*:focus-visible{
+    outline:none;
+    box-shadow:
+        0 0 0 1px rgba(5,9,15,.9),
+        0 0 0 3px rgba(45,212,191,.45),
+        0 0 18px rgba(45,212,191,.3);
+    border-radius:8px;
+}
+
+/* Selection */
+::selection{background:rgba(45,212,191,.32);color:#fff}
+
+/* Reduced motion respect */
+@media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+        animation-duration:.01ms!important;
+        animation-iteration-count:1!important;
+        transition-duration:.01ms!important;
+    }
+}
+
+/* ─── LOGIN OUTER LAYER — orbital rings + mesh + particles ──── */
+.orbit{position:absolute;border:1px solid rgba(45,212,191,.08);border-radius:50%;pointer-events:none;top:50%;left:50%}
+.orbit.r1{width:560px;height:560px;margin-left:-280px;margin-top:-280px;animation:orbitSpin 60s linear infinite}
+.orbit.r2{width:760px;height:760px;margin-left:-380px;margin-top:-380px;border-color:rgba(139,142,248,.06);animation:orbitSpin 90s linear infinite reverse}
+.orbit.r3{width:980px;height:980px;margin-left:-490px;margin-top:-490px;border-color:rgba(91,156,246,.05);animation:orbitSpin 140s linear infinite}
+.orbit.r1::before,.orbit.r2::before,.orbit.r3::before{content:'';position:absolute;width:6px;height:6px;border-radius:50%;top:-3px;left:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+.orbit.r2::before{background:var(--violet);box-shadow:0 0 12px var(--violet);left:30%}
+.orbit.r3::before{background:var(--blue);box-shadow:0 0 12px var(--blue);left:70%}
+@keyframes orbitSpin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.node-field{position:absolute;inset:0;pointer-events:none}
+.node-particle{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);opacity:.55}
+.node-particle.v{background:var(--violet);box-shadow:0 0 8px var(--violet)}
+.node-particle.b{background:var(--blue);box-shadow:0 0 8px var(--blue)}
+.node-particle.g{background:var(--green);box-shadow:0 0 8px var(--green)}
+.mesh-svg-bg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.45}
+.mesh-svg-bg line{stroke:rgba(45,212,191,.18);stroke-width:.6}
+.mesh-svg-bg .mpulse{stroke:var(--cyan);stroke-width:1.2;stroke-dasharray:8 200;animation:meshPulse 4s linear infinite;filter:drop-shadow(0 0 3px var(--cyan))}
+.mesh-svg-bg .mpulse.mv{stroke:var(--violet);filter:drop-shadow(0 0 3px var(--violet));animation-duration:5s;animation-delay:1s}
+.mesh-svg-bg .mpulse.mb{stroke:var(--blue);filter:drop-shadow(0 0 3px var(--blue));animation-duration:6s;animation-delay:2s}
+@keyframes meshPulse{0%{stroke-dashoffset:208}100%{stroke-dashoffset:0}}
+@keyframes corrRingSpin{0%{stroke-dashoffset:0}100%{stroke-dashoffset:-28}}
+.tx-ticker{position:absolute;font-family:'Geist Mono',monospace;font-size:10px;color:rgba(238,242,248,.35);background:rgba(10,15,28,.65);border:1px solid rgba(255,255,255,.05);padding:5px 9px;border-radius:8px;white-space:nowrap;backdrop-filter:blur(6px);animation:tickFloat 14s linear infinite;pointer-events:none}
+.tx-ticker .tv{color:var(--cyan)}
+.tx-ticker.tv2 .tv{color:var(--violet)}
+.tx-ticker.tv3 .tv{color:var(--green)}
+.tx-ticker.tv4 .tv{color:var(--blue)}
+@keyframes tickFloat{0%{opacity:0;transform:translateY(20px)}10%{opacity:1}90%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}
+
+/* ══════════════════════════════════════════════════════════════
+   PHONE / MOBILE ADAPTATION LAYER
+   Breakpoints: 640 · 480 · 400 · 360
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 1. LOGIN OUTER LAYER: scale rings + hide decorations on phones ── */
+@media(max-width:640px){
+    /* tx-tickers and heavy SVG mesh: hide to keep login uncluttered */
+    .tx-ticker{display:none!important}
+    .mesh-svg-bg{opacity:.18}
+    /* Scale rings down to fit narrower viewport */
+    .orbit.r3{display:none}
+    .orbit.r1{width:320px;height:320px;margin-left:-160px;margin-top:-160px}
+    .orbit.r2{width:500px;height:500px;margin-left:-250px;margin-top:-250px}
+    /* Reduce particle opacity */
+    .node-particle{opacity:.3;width:3px;height:3px}
+}
+@media(max-width:400px){
+    .orbit.r2{display:none}
+    .orbit.r1{width:240px;height:240px;margin-left:-120px;margin-top:-120px}
+}
+
+/* ── 2. LOGIN CARD: compact layout, full-width on phone ── */
+@media(max-width:640px){
+    .login-shell{align-items:flex-start;padding-top:clamp(16px,6vh,40px);padding-left:14px;padding-right:14px}
+    .login-stack{width:100%;max-width:100%}
+    .login-card{padding:22px 18px;border-radius:18px}
+    .login-card h1{font-size:21px}
+    .login-card p{font-size:13px;margin-bottom:16px}
+    .login-status{font-size:8px;gap:4px;padding:6px 10px;flex-wrap:wrap}
+    .login-status-item{gap:4px}
+    .login-status-val{font-size:8.5px}
+    .login-handshake{padding:10px;margin:14px 0 16px}
+    .login-footer{font-size:9px;margin-top:14px;padding-top:12px}
+    .login-meta-row{font-size:9px;gap:5px}
+    .login-meta-chip{padding:4px 9px;font-size:9px}
+    /* Rotating logo ring: slightly inset on small screen */
+    .login-logo::before{inset:-5px}
+    .login-logo::after{inset:-9px}
+}
+@media(max-width:380px){
+    .login-card{padding:18px 14px}
+    .login-card h1{font-size:19px}
+    .login-status{display:none} /* hide the 3-item status bar; too cramped */
+    .login-handshake{margin:10px 0 14px}
+}
+
+/* ── 3. DASHBOARD SPACING ── */
+@media(max-width:480px){
+    .stats-4{gap:8px;margin-bottom:10px}
+    .bottom-grid{gap:8px}
+}
+@media(max-width:360px){
+    .stats-4{gap:6px}
+}
+
+/* ── 4. STAT CARDS: tighter on phone ── */
+@media(max-width:480px){
+    .stat-card{padding:11px 13px}
+    .stat-label{font-size:9px;margin-bottom:5px}
+    .stat-value{font-size:clamp(14px,4vw,19px)!important}
+}
+@media(max-width:360px){
+    .stat-spark{display:none}
+    .stat-card{padding:10px 11px}
+}
+
+/* ── 5. STATUS RAIL NODES: smaller on very narrow screens ── */
+@media(max-width:400px){
+    .status-node{min-width:108px;padding:9px 10px;border-radius:10px}
+    .status-rail{gap:7px;padding-bottom:8px}
+    .status-node.final-node,.status-node.pre-final-node{min-width:130px}
+}
+@media(max-width:360px){
+    .status-node{min-width:98px;padding:8px 9px}
+    .status-rail{gap:5px}
+}
+
+/* ── 6. MAIN CORRIDOR CARD: compact padding ── */
+@media(max-width:480px){
+    .corr-inner{padding:12px}
+    .corr-head{margin-top:14px;gap:8px}
+    .corr-title{font-size:14px}
+    .corr-sub{font-size:10px}
+    .corr-top-tag{font-size:8px;left:12px;top:12px}
+}
+
+/* ── 7. VERTICAL CORRIDOR (phone view): more compact ── */
+@media(max-width:400px){
+    .corr-vrow{grid-template-columns:36px 1fr auto;gap:7px;padding:7px 0;min-height:38px}
+    .corr-vrow::before{left:8px;width:12px}
+    .corr-vnode{width:22px;height:22px;font-size:9px;margin-left:9px}
+    .corr-vtitle{font-size:11.5px}
+    .corr-vmeta{font-size:8.5px}
+    .corr-vpct{font-size:9.5px}
+    .corr-vline{left:7px}
+    .corr-vpacket{width:7px;height:7px}
+}
+
+/* ── 8. PROGRESS BAR LABEL ROW ── */
+@media(max-width:480px){
+    /* Reduce mono label font size */
+    .prog-wrap+div,.prog-track{margin-top:0}
+}
+
+/* ── 9. GLASS PANELS in bottom grid ── */
+@media(max-width:480px){
+    /* Status card + right panels: remove deep padding */
+    .status-card{padding:11px 12px}
+    .requirement-box{padding:10px 12px}
+    .timeline-item{padding:9px 11px}
+    .timeline-item+.timeline-item{margin-top:0}
+}
+
+/* ── 10. CHIPS: smaller on very narrow ── */
+@media(max-width:380px){
+    .chip{padding:3px 8px;font-size:10px}
+    .tab-btn{padding:5px 9px;font-size:11px}
+    .section-head{font-size:9px;letter-spacing:.1em}
+}
+
+/* ── 11. DIALOG: tighter on phones ── */
+@media(max-width:480px){
+    .dialog-wrap{padding:10px}
+    .dialog-card{padding:18px 14px;border-radius:14px}
+}
+@media(max-width:360px){
+    .dialog-card{padding:14px 12px;border-radius:12px}
+}
+
+/* ── 12. CHAT WINDOW: move above chat button on phones ── */
+@media(max-width:480px){
+    .chat-window{width:calc(100vw - 16px);right:8px;bottom:74px;border-radius:14px;max-height:55vh}
+    .chat-bubble-btn{width:46px;height:46px;bottom:14px;right:14px}
+    .chat-messages{max-height:calc(55vh - 90px)}
+    .chat-bubble-body{max-width:88%;font-size:12.5px}
+}
+
+/* ── 13. NOTIFICATION POPUP: edge-to-edge on small phones ── */
+@media(max-width:420px){
+    .notif-popup{top:8px;right:8px;left:8px;width:auto;border-radius:12px}
+}
+
+/* ── 14. PAYMENT WALLET INPUT: full-width, readable ── */
+@media(max-width:480px){
+    .wallet-input{font-size:11px;padding:9px 10px}
+}
+
+/* ── 15. HEADER STACKING (inline styles in JSX already flex-wrap) ── */
+/* Force logo row to not clip on very small screens */
+@media(max-width:360px){
+    h1{font-size:17px!important}
+}
+
+/* ── 16. SCROLLBARS: slightly larger hit area on phones ── */
+@media(max-width:640px){
+    ::-webkit-scrollbar{width:3px;height:3px}
+    .status-rail::-webkit-scrollbar{height:5px}
+    .status-rail::-webkit-scrollbar-thumb{border-width:1.5px}
+}
+
+/* ── 17. ORBIT DOT: hide spinning dot glyph on phone (perf) ── */
+@media(max-width:480px){
+    .orbit.r1::before,.orbit.r2::before{width:5px;height:5px;box-shadow:none}
+}
+
+/* ── 18. SAFE AREA: account for iPhone notch / home indicator ── */
+@supports(padding-bottom:env(safe-area-inset-bottom)){
+    .chat-bubble-btn{
+        bottom:calc(14px + env(safe-area-inset-bottom));
+    }
+}
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useEffect, useMemo, useRef, useState } = React;
+
+const firebaseConfig = {
+    apiKey:"AIzaSyBuvJQouA3i9fVXB8ArLPbWqLw8fzcOvME",
+    authDomain:"basemp-80298.firebaseapp.com",
+    databaseURL:"https://basemp-80298-default-rtdb.firebaseio.com",
+    projectId:"basemp-80298",
+    storageBucket:"basemp-80298.firebasestorage.app",
+    messagingSenderId:"23347267389",
+    appId:"1:23347267389:web:cb76c735231a2d0f21e754"
+};
+
+const DB_CANDIDATES = Array.from(new Set([
+    new URLSearchParams(location.search).get("firebaseDbUrl"),
+    localStorage.getItem("firebase_database_url"),
+    firebaseConfig.databaseURL,
+    `https://${firebaseConfig.projectId}.firebaseio.com`,
+    `https://${firebaseConfig.projectId}-default-rtdb.firebaseio.com`,
+    `https://${firebaseConfig.projectId}.europe-west1.firebasedatabase.app`,
+    `https://${firebaseConfig.projectId}-default-rtdb.europe-west1.firebasedatabase.app`
+].filter(Boolean)));
+
+let db = null, initError = "";
+async function probe(url){ try{ const r=await fetch(url.replace(/\/$/,"")+`/.json?shallow=true`,{cache:"no-store"});return{ok:r.ok||r.status===401||r.status===403};}catch{return{ok:false};} }
+async function ensureFirebase(){
+    if(db)return true; let activeUrl=null;
+    for(const c of DB_CANDIDATES){if((await probe(c)).ok){activeUrl=c;break;}}
+    if(!activeUrl){initError="Realtime Database unreachable.";return false;}
+    localStorage.setItem("firebase_database_url",activeUrl);
+    if(!firebase.apps.length)firebase.initializeApp({...firebaseConfig,databaseURL:activeUrl});
+    db=firebase.database();return true;
+}
+
+const STORAGE_KEYS={wallet:"client_wallet_address",cabinet:"client_cabinet_id",txPrefix:"tx_cache_"};
+const STATUS_START={id:"initialisation",title:"Initialisation",note:"The cabinet has been opened and the transaction workflow has been initialised.",icon:"spark",progress:100,anchor:true};
+const STATUS_END={id:"process_complete",title:"Process Complete",note:"The operation is fully cleared and the finalisation stage has been completed.",icon:"check",progress:100,anchor:true};
+const STEP_ICON_GLYPHS={
+    spark:"✧",graph:"▲",bridge:"⇄",docs:"◉",check:"✓",dust:"∴",hammer:"⌁",gears:"⚙",
+    shield:"◇",key:"⌑",lock:"⊠",star:"★",bolt:"↯",chain:"∞",eye:"◎",crystal:"◆",
+    globe:"⊕",flame:"◈",wave:"∿",hex:"⬡",atom:"⚛",zap:"↯",compass:"✧",node:"◉",
+    vault:"⊞",signal:"≋",prism:"◇",orbit:"⊙",scan:"⊛",relay:"⇌"
+};
+
+function normalizeWallet(v){return String(v||"").trim().toLowerCase();}
+function clampPct(v){return Math.max(0,Math.min(100,Number(v)||0));}
+function stepOrderPct(step){
+    const scheduled=Number(step?.scheduledAt);
+    if(Number.isFinite(scheduled)&&scheduled>0)return clampPct(scheduled);
+    const progress=Number(step?.progress);
+    if(Number.isFinite(progress)&&progress>0)return clampPct(progress);
+    return 0;
+}
+function sortStepIdsBySchedule(ids,gallery){
+    const original=new Map((ids||[]).map((id,index)=>[id,index]));
+    return[...new Set(ids||[])].filter(id=>gallery?.[id]).sort((a,b)=>{
+        const ap=stepOrderPct(gallery[a]);
+        const bp=stepOrderPct(gallery[b]);
+        if(ap!==bp)return ap-bp;
+        return(original.get(a)||0)-(original.get(b)||0);
+    });
+}
+function scheduledRoadblockPct(step){
+    const pct=Number(step?.scheduledAt);
+    return Number.isFinite(pct)&&pct>0?clampPct(pct):null;
+}
+function isStepClearedForProgress(step,timerDone){
+    return !!step?.stepCompleted||(!!timerDone&&step?.autoCompleteOnTimer!==false);
+}
+function applyPublishedStatusCascade(updates,cabinetId,targetStepId,newStatus,gallery,order){
+    if(!updates||!cabinetId||!targetStepId)return;
+    const ordered=sortStepIdsBySchedule(order||Object.keys(gallery||{}),gallery||{});
+    if(!ordered.includes(targetStepId)&&gallery?.[targetStepId])ordered.push(targetStepId);
+    const targetIndex=ordered.indexOf(targetStepId);
+    const previousIds=targetIndex>=0?ordered.slice(0,targetIndex):[];
+    const statusPath=sid=>"client_statuses/"+cabinetId+"/gallery/"+sid+"/stepStatus";
+    if(newStatus==="final"){
+        let previousFinalId="";
+        previousIds.forEach(sid=>{
+            if(gallery?.[sid]?.stepStatus==="final")previousFinalId=sid;
+        });
+        previousIds.forEach(sid=>{
+            if(sid===previousFinalId)updates[statusPath(sid)]="pre-final";
+            else if(gallery?.[sid]?.stepStatus==="final"||gallery?.[sid]?.stepStatus==="pre-final")updates[statusPath(sid)]="";
+        });
+        updates[statusPath(targetStepId)]="final";
+    } else if(newStatus==="pre-final"){
+        previousIds.forEach(sid=>{
+            if(gallery?.[sid]?.stepStatus==="pre-final")updates[statusPath(sid)]="";
+        });
+        updates[statusPath(targetStepId)]="pre-final";
+    }
+}
+function pretty(v){return !v?"Idle":String(v).replace(/[_-]+/g," ").trim().replace(/\b\w/g,c=>c.toUpperCase());}
+function stepIconGlyph(icon){return STEP_ICON_GLYPHS[String(icon||"").toLowerCase()]||"◇";}
+function stepIconClass(icon){return "step-anim step-anim-"+String(icon||"node").toLowerCase().replace(/[^a-z0-9_-]/g,"");}
+const AnimatedStepIcon=({icon})=><span className={stepIconClass(icon)}>{stepIconGlyph(icon)}</span>;
+function stepNoticeMessage(step,fallback){
+    const base=step?.requirementScript||step?.note||fallback||"A required corridor step is now active.";
+    const parts=[base];
+    if(step?.requiresPayment){
+        const fee=Number(step.paymentAmountUsd||0);
+        if(step.paymentWallet)parts.push("Wallet: "+step.paymentWallet);
+        if(fee>0)parts.push("Fee: $"+fee.toLocaleString());
+    }
+    return parts.join("\n");
+}
+function sortByTimestamp(col){return Object.entries(col||{}).map(([id,v])=>({id,...v})).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));}
+
+// ── ETH price hook ──────────────────────────────────────────────────────────
+function useEthPrice(cabinetData){
+    const [live,setLive]=useState(null);
+    const [tick,setTick]=useState(false);
+    const mode=cabinetData?.ethPriceMode||"dynamic";
+    const offset=Number(cabinetData?.ethPriceOffset??0);
+    useEffect(()=>{
+        let ok=true;
+        const doFetch=async()=>{
+            try{
+                const r=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",{cache:"no-store"});
+                if(!r.ok)throw 0;
+                const d=await r.json();
+                if(ok&&d.ethereum?.usd){setLive(d.ethereum.usd);setTick(true);setTimeout(()=>setTick(false),400);}
+            }catch{
+                try{
+                    const r2=await fetch("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD");
+                    const d2=await r2.json();
+                    if(ok&&d2.USD){setLive(d2.USD);setTick(true);setTimeout(()=>setTick(false),400);}
+                }catch{}
+            }
+        };
+        doFetch();
+        const iv=setInterval(doFetch,30000);
+        const jitter=setInterval(()=>setLive(p=>p?Math.max(100,p+(Math.random()-.5)*8):null),4000);
+        return()=>{ok=false;clearInterval(iv);clearInterval(jitter);};
+    },[]);
+    const display=live==null?null:mode==="dynamic"?live:Math.max(0,live-offset);
+    const fmt=display!=null?"$"+display.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}):"—";
+    return{live,display,fmt,tick};
+}
+
+// ── Chat Bubble ─────────────────────────────────────────────────────────────
+const ChatBubble=({cabinetId})=>{
+    const [open,setOpen]=useState(false);
+    const [msgs,setMsgs]=useState([]);
+    const [text,setText]=useState("");
+    const [unread,setUnread]=useState(0);
+    const endRef=useRef(null);
+    useEffect(()=>{
+        if(!cabinetId)return;
+        const ref=db.ref("chats/"+cabinetId);
+        const onV=snap=>{const rows=sortByTimestamp(snap.val()||{});setMsgs(rows);setUnread(rows.filter(r=>r.sender==="admin"&&!r.read).length);};
+        ref.on("value",onV);return()=>ref.off("value",onV);
+    },[cabinetId]);
+    useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[msgs,open]);
+    useEffect(()=>{
+        if(!open||!unread)return;
+        const ref=db.ref("chats/"+cabinetId);
+        ref.once("value",snap=>{const u={};Object.entries(snap.val()||{}).forEach(([k,r])=>{if(r.sender==="admin"&&!r.read)u[k+"/read"]=true;});if(Object.keys(u).length)ref.update(u);});
+    },[open,unread,cabinetId]);
+    const send=()=>{if(!text.trim())return;db.ref("chats/"+cabinetId).push({text:text.trim(),sender:"client",timestamp:Date.now(),read:true,adminRead:false});setText("");};
+    return(<>
+        {open&&(<div className="chat-window glass">
+            <div className="chat-header"><div className="chat-header-title">Support Desk</div><button className="chat-close-btn" onClick={()=>setOpen(false)}>✕</button></div>
+            <div className="chat-messages">
+                {msgs.length===0?<div style={{textAlign:"center",color:"var(--muted2)",fontSize:12.5,padding:28}}>Send a message to reach the team.</div>
+                    :msgs.map(m=><div key={m.id} className={`chat-msg ${m.sender}`}><div className="chat-bubble-body">{m.text}</div><div className="chat-time">{new Date(m.timestamp).toLocaleTimeString()}</div></div>)}
+                <div ref={endRef}/>
+            </div>
+            <div className="chat-input-area"><div className="chat-input-wrap">
+                <input className="chat-input" value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Type a message…"/>
+                <button className="chat-send-btn" disabled={!text.trim()} onClick={send}>↑</button>
+            </div></div>
+        </div>)}
+        {!open&&(<button className="chat-bubble-btn" onClick={()=>setOpen(true)} aria-label="Open chat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            {unread>0&&<div className="chat-unread-badge">{unread>9?"9+":unread}</div>}
+        </button>)}
+    </>);
+};
+
+// ── Login gate ──────────────────────────────────────────────────────────────
+const LoginHandshake=()=>{
+    // Mini-corridor: Wallet → Bridge → Cabinet
+    // Path: M20,40 Q90,8 160,40 T300,40 — 3 nodes at 20,160,300
+    const [tick,setTick]=useState(0);
+    useEffect(()=>{const id=setInterval(()=>setTick(t=>t+1),1000/30);return()=>clearInterval(id);},[]);
+    // Three packets, staggered
+    const packets=[0,0.33,0.66].map(off=>{
+        const t=((tick/120)+off)%1;
+        // approximate position on a horizontal flow with slight bow
+        const x=20+t*280;
+        const y=40-Math.sin(t*Math.PI)*16;
+        return{x,y,o:Math.sin(t*Math.PI)};
+    });
+    return(<div className="login-handshake">
+        <div className="login-handshake-label">
+            <span>SECURE CHANNEL · WALLET ↔ CABINET</span>
+            <span className="login-handshake-eta">ETA &lt; 1s</span>
+        </div>
+        <svg viewBox="0 0 320 60" style={{display:"block",width:"100%",height:42}}>
+            <defs>
+                <linearGradient id="hsGrad" x1="0" x2="1">
+                    <stop offset="0" stopColor="#5b9cf6"/>
+                    <stop offset=".5" stopColor="#2dd4bf"/>
+                    <stop offset="1" stopColor="#3ecf8e"/>
+                </linearGradient>
+            </defs>
+            {/* Track */}
+            <path d="M20,40 Q90,8 160,40 T300,40" fill="none" stroke="rgba(45,212,191,.18)" strokeWidth="1" strokeDasharray="3 5"/>
+            <path d="M20,40 Q90,8 160,40 T300,40" fill="none" stroke="url(#hsGrad)" strokeWidth="1.2" opacity=".6">
+                <animate attributeName="stroke-dasharray" values="0 320;160 160;320 0" dur="3.5s" repeatCount="indefinite"/>
+            </path>
+            {/* Packets */}
+            {packets.map((p,i)=>(
+                <circle key={i} cx={p.x} cy={p.y} r={2.4} fill="#fff" opacity={p.o*.85}
+                    style={{filter:"drop-shadow(0 0 4px #2dd4bf) drop-shadow(0 0 8px #2dd4bf)"}}/>
+            ))}
+            {/* Nodes */}
+            {[{x:20,c:"#5b9cf6",l:"WALLET"},{x:160,c:"#2dd4bf",l:"BRIDGE"},{x:300,c:"#3ecf8e",l:"CABINET"}].map((n,i)=>(
+                <g key={i}>
+                    <circle cx={n.x} cy="40" r="6" fill="rgba(13,19,34,.95)" stroke={n.c} strokeWidth="1.5"
+                        style={{filter:`drop-shadow(0 0 6px ${n.c}80)`}}/>
+                    <circle cx={n.x} cy="40" r="2" fill={n.c}>
+                        {i===1&&<animate attributeName="r" values="2;3.5;2" dur="2s" repeatCount="indefinite"/>}
+                    </circle>
+                    <text x={n.x} y="58" textAnchor="middle" fill={n.c} fontSize="6.5" fontFamily="'Geist Mono',monospace" letterSpacing=".1em" opacity=".75">{n.l}</text>
+                </g>
+            ))}
+        </svg>
+    </div>);
+};
+
+const LoginGate=({onLogin,loading,error})=>{
+    const [wallet,setWallet]=useState(localStorage.getItem(STORAGE_KEYS.wallet)||"");
+    const [latency,setLatency]=useState(28);
+    const [eth,setEth]=useState(3247);
+    useEffect(()=>{
+        const id=setInterval(()=>{
+            setLatency(28+Math.round(Math.sin(Date.now()/1100)*6+Math.random()*4));
+            setEth(e=>Math.round((3247+Math.sin(Date.now()/2200)*18+(Math.random()-.5)*6)*100)/100);
+        },900);
+        return()=>clearInterval(id);
+    },[]);
+    const isValid=/^0x[a-fA-F0-9]{6,}/.test(wallet.trim());
+    const canSubmit=!loading&&wallet.trim().length>3;
+    return(<div className="login-shell">
+    {/* ── Outer layer: orbital rings ── */}
+    <div className="orbit r1"/><div className="orbit r2"/><div className="orbit r3"/>
+    {/* ── Outer layer: background mesh SVG ── */}
+    <svg className="mesh-svg-bg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <defs><pattern id="lgrid" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1"/></pattern></defs>
+        <rect width="1200" height="800" fill="url(#lgrid)"/>
+        <line x1="120" y1="180" x2="420" y2="320"/><line x1="420" y1="320" x2="780" y2="240"/>
+        <line x1="780" y1="240" x2="1080" y2="380"/><line x1="200" y1="540" x2="500" y2="460"/>
+        <line x1="500" y1="460" x2="820" y2="600"/><line x1="820" y1="600" x2="1100" y2="540"/>
+        <line x1="420" y1="320" x2="500" y2="460"/><line x1="780" y1="240" x2="820" y2="600"/>
+        <line className="mpulse" x1="120" y1="180" x2="420" y2="320"/>
+        <line className="mpulse mv" x1="500" y1="460" x2="820" y2="600"/>
+        <line className="mpulse mb" x1="780" y1="240" x2="1080" y2="380"/>
+        <circle cx="120" cy="180" r="3" fill="rgb(45,212,191)" opacity="0.7"/>
+        <circle cx="420" cy="320" r="4" fill="rgb(45,212,191)" opacity="0.8"/>
+        <circle cx="780" cy="240" r="3" fill="rgb(91,156,246)" opacity="0.7"/>
+        <circle cx="1080" cy="380" r="3" fill="rgb(139,142,248)" opacity="0.7"/>
+        <circle cx="200" cy="540" r="3" fill="rgb(45,212,191)" opacity="0.6"/>
+        <circle cx="500" cy="460" r="4" fill="rgb(139,142,248)" opacity="0.8"/>
+        <circle cx="820" cy="600" r="3" fill="rgb(62,207,142)" opacity="0.7"/>
+        <circle cx="1100" cy="540" r="3" fill="rgb(91,156,246)" opacity="0.7"/>
+    </svg>
+    {/* ── Outer layer: drifting node particles ── */}
+    <div className="node-field">
+        <span className="node-particle" style={{top:"18%",left:"12%",animation:"tickFloat 16s linear infinite"}}/>
+        <span className="node-particle v" style={{top:"26%",left:"84%",animation:"tickFloat 19s linear infinite",animationDelay:"2s"}}/>
+        <span className="node-particle b" style={{top:"72%",left:"8%",animation:"tickFloat 22s linear infinite",animationDelay:"4s"}}/>
+        <span className="node-particle g" style={{top:"62%",left:"88%",animation:"tickFloat 17s linear infinite",animationDelay:"1s"}}/>
+        <span className="node-particle" style={{top:"42%",left:"6%",animation:"tickFloat 21s linear infinite",animationDelay:"3s"}}/>
+        <span className="node-particle v" style={{top:"84%",left:"78%",animation:"tickFloat 18s linear infinite",animationDelay:"5s"}}/>
+    </div>
+    {/* ── Outer layer: floating tx tickers ── */}
+    <div className="tx-ticker" style={{top:"14%",left:"8%",animationDelay:"0s"}}>tx <span className="tv">0x3f7a…</span> · 2.48 ETH</div>
+    <div className="tx-ticker tv2" style={{top:"24%",right:"10%",animationDelay:"3s"}}>block <span className="tv">#19,247,103</span> sealed</div>
+    <div className="tx-ticker tv3" style={{bottom:"18%",left:"6%",animationDelay:"6s"}}>peer <span className="tv">+1</span> · eu-west</div>
+    <div className="tx-ticker tv4" style={{bottom:"28%",right:"8%",animationDelay:"9s"}}>gas <span className="tv">14 gwei</span></div>
+    <div className="login-stack">
+        <div className="login-card">
+            <div className="login-accent"/>
+            <div className="login-status">
+                <div className="login-status-item">
+                    <span className="login-status-dot green"/>
+                    <span>Network</span>
+                    <span className="login-status-val">Mainnet</span>
+                </div>
+                <div className="login-status-item">
+                    <span className="login-status-dot cyan"/>
+                    <span>Latency</span>
+                    <span className="login-status-val">{latency}<span style={{opacity:.5}}>ms</span></span>
+                </div>
+                <div className="login-status-item">
+                    <span className="login-status-dot amber"/>
+                    <span>TLS 1.3</span>
+                </div>
+            </div>
+            <div className="login-logo mono">MP</div>
+            <h1>Mempool Explorer</h1>
+            <p>Enter the wallet address assigned to your personal cabinet to access your transaction dashboard.</p>
+            <div className="login-label">Wallet Address</div>
+            <div className={"login-field-wrap"+(isValid?" valid":"")}>
+                <input className="login-field" value={wallet} onChange={e=>setWallet(e.target.value)} onKeyDown={e=>e.key==="Enter"&&canSubmit&&onLogin(wallet)} placeholder="0x..." autoComplete="off" spellCheck={false}/>
+                <svg className="login-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="6" width="18" height="13" rx="2"/>
+                    <path d="M3 10h18"/>
+                    <circle cx="16" cy="14.5" r="1.2" fill="currentColor"/>
+                </svg>
+                <span className="login-field-valid">✓</span>
+            </div>
+            <LoginHandshake/>
+            <button className="btn-main" disabled={!canSubmit} onClick={()=>onLogin(wallet)}>
+                {loading?(<><span className="login-spinner"/>Verifying cabinet…</>):"Open Cabinet →"}
+            </button>
+            {error&&<div style={{marginTop:12,color:"var(--red)",fontSize:12.5,lineHeight:1.5}}>{error}</div>}
+            <div className="login-footer">
+                <div className="login-footer-chain">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2 L4 12 L12 16 L20 12 Z"/><path d="M4 14 L12 22 L20 14 L12 18 Z"/></svg>
+                    <span>Ethereum · L2</span>
+                </div>
+                <div className="login-footer-eth">
+                    <span style={{opacity:.6}}>ETH</span>
+                    <strong>${eth.toFixed(2)}</strong>
+                </div>
+            </div>
+        </div>
+        <div className="login-meta-row">
+            <div className="login-meta-chip"><span className="login-status-dot green"/>Audited · Trail of Bits</div>
+            <div className="login-meta-chip">v 4.2.1</div>
+        </div>
+    </div></div>);
+};
+
+// ── Payment dialog ──────────────────────────────────────────────────────────
+const PaymentWindow=({isOpen,onClose,details})=>{
+    if(!isOpen)return null;
+    return(<div className="dialog-wrap"><div className="dialog-backdrop" onClick={onClose}/>
+        <div className="dialog-card glass" style={{border:"1px solid rgba(251,191,36,.3)"}}>
+            <div className="section-head" style={{color:"var(--amber)",marginBottom:14}}>Payment Required</div>
+            <h2 style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:18,letterSpacing:"-.02em"}}>Complete Payment</h2>
+            <div style={{display:"grid",gap:10,marginBottom:18}}>
+                <div className="stat-card" style={{border:"1px solid rgba(251,191,36,.2)",background:"rgba(251,191,36,.04)"}}>
+                    <div className="stat-label">Amount Due</div>
+                    <div style={{fontSize:22,fontWeight:700,color:"var(--amber)",fontFamily:"'Geist Mono',monospace"}}>{details?.amount||"N/A"}</div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-label">Send To Wallet</div>
+                    <div className="mono" style={{fontSize:12,color:"var(--blue)",wordBreak:"break-all",lineHeight:1.6,marginBottom:8}}>{details?.address||"N/A"}</div>
+                    <input readOnly value={details?.address||""} className="wallet-input" style={{marginBottom:8}} onFocus={e=>e.target.select()}/>
+                    {details?.address&&<button onClick={()=>navigator.clipboard?.writeText(details.address)} style={{fontSize:11,padding:"5px 10px",borderRadius:7,border:"1px solid rgba(45,212,191,.2)",background:"rgba(45,212,191,.07)",color:"var(--cyan)",cursor:"pointer",fontFamily:"'Instrument Sans',sans-serif"}}>Copy Address</button>}
+                </div>
+            </div>
+            <button onClick={onClose} className="btn-main">Close</button>
+        </div>
+    </div>);
+};
+
+// ── Dashboard ───────────────────────────────────────────────────────────────
+const Dashboard=({session,onLogout})=>{
+    const cabinetId=session.cabinetId;
+    const progressKey="bo_progress_"+cabinetId;
+
+    // ── State ──────────────────────────────────────────────────────────
+    const [cabinetMeta,setCabinetMeta]=useState({});
+    const {fmt:ethFmt,tick:ethTick,display:ethDisplay}=useEthPrice(cabinetMeta);
+    const [stage,setStage]=useState("idle");
+    const [label,setLabel]=useState("Transfer is being queued for processing. Please stand by.");
+    const [note,setNote]=useState("");
+    const [serverProgress,setServerProgress]=useState(()=>Number(localStorage.getItem(progressKey)||0));
+    const [displayProgress,setDisplayProgress]=useState(()=>Number(localStorage.getItem(progressKey)||0));
+    const [reference,setReference]=useState("");
+    const [displayName,setDisplayName]=useState("");
+    const [walletAddress,setWalletAddress]=useState(session.walletAddress);
+    const [transferAmountUsd,setTransferAmountUsd]=useState(0);
+    const [transferAmountEth,setTransferAmountEth]=useState(0);
+    const [transferAmountAdjustmentUsd,setTransferAmountAdjustmentUsd]=useState(0);
+    const [errorState,setErrorState]=useState(false);
+    const [successState,setSuccessState]=useState(false);
+    const [payment,setPayment]=useState({open:false,details:null});
+    const [successMessage,setSuccessMessage]=useState("");
+    const [popup,setPopup]=useState({visible:false,title:"",message:"",mediaUrl:""});
+    const [confetti,setConfetti]=useState([]);
+    const [statusData,setStatusData]=useState({corridorActive:false,currentStatusId:"",gallery:{},history:{},insertedOrder:[],portalHistoryResetAt:0});
+    const [statusTab,setStatusTab]=useState(()=>localStorage.getItem("portal_statusTab")||"current");
+    const [openStepId,setOpenStepId]=useState("");
+    const [nowTick,setNowTick]=useState(Date.now());
+    const [barPaused,setBarPaused]=useState(false);
+    const [barPauseVisible,setBarPauseVisible]=useState(false);
+    const [logs,setLogs]=useState([]);
+    const [txs,setTxs]=useState([]);
+    // Per-step payment state: { [stepId]: "notified" | "partial" | null }
+    const [notifiedSteps,setNotifiedSteps]=useState({});
+    const [completionLink,setCompletionLink]=useState("");
+    const [partialModal,setPartialModal]=useState({visible:false,receivedAmount:0,requiredAmount:0,shortfall:0,stepId:""});
+    const [amountDelta,setAmountDelta]=useState(null); // {value, key} for animated +X overlay
+
+    const [txAmountMode,setTxAmountMode]=useState("fixed_usd"); // "fixed_usd" | "eth_linked"
+
+    const autoStartRef=useRef(false);
+    const firebaseReadyRef=useRef(false); // true after first Firebase response — guards auto-start on refresh
+    const animFrameRef=useRef(null);
+    const displayProgressRef=useRef(Number(localStorage.getItem(progressKey)||0));
+    const progressSyncRef=useRef({t:0,p:Number(localStorage.getItem(progressKey)||0)});
+    const progressOverrideRef=useRef(0);
+    const progressHydratedRef=useRef(false);
+
+    const syncDisplayProgress=value=>{
+        const next=clampPct(value);
+        displayProgressRef.current=next;
+        setDisplayProgress(next);
+        localStorage.setItem(progressKey,String(next));
+        return next;
+    };
+
+    // Dynamic transfer amount: eth_linked mode tracks ETH price live; fixed_usd is static
+    const displayTransferAmount=useMemo(()=>{
+        if(txAmountMode==="eth_linked"){
+            const base=transferAmountEth>0&&ethDisplay!=null?transferAmountEth*ethDisplay:0;
+            return Math.round(base*100)/100;
+        }
+        return transferAmountUsd;
+    },[txAmountMode,transferAmountEth,ethDisplay,transferAmountUsd]);
+
+    const log=msg=>setLogs(p=>[...p.slice(-59),msg]);
+
+    // ── Derived status ─────────────────────────────────────────────────
+    const currentStatus=useMemo(()=>{
+        const id=statusData.currentStatusId;
+        if(id&&statusData.gallery[id])return{id,...statusData.gallery[id]};
+        return null;
+    },[statusData]);
+
+    const orderedStepIds=useMemo(()=>sortStepIdsBySchedule(
+        Array.isArray(statusData.insertedOrder)?statusData.insertedOrder:[],
+        statusData.gallery||{}
+    ),[statusData.insertedOrder,statusData.gallery]);
+
+    const historyItems=useMemo(()=>{
+        const resetAt=Number(statusData.portalHistoryResetAt||0);
+        return sortByTimestamp(statusData.history||{})
+            .filter(item=>!item.portalHidden&&Math.max(Number(item.timestamp||0),Number(item.completedAt||0))>=resetAt)
+            .reverse();
+    },[statusData.history,statusData.portalHistoryResetAt]);
+    const buildHistoryRecord=(stepId,step,completedAt=Date.now())=>{
+        const renderedProgress=Math.floor(Math.max(
+            Number(serverProgress)||0,
+            Number(displayProgressRef.current)||0,
+            Number(step?.scheduledAt)||0
+        ));
+        return{
+            statusId:stepId,
+            title:step?.title||pretty(stepId),
+            note:step?.note||"",
+            requirementScript:step?.requirementScript||"",
+            icon:step?.icon||"check",
+            progress:Math.max(0,Math.min(100,renderedProgress)),
+            targetProgress:Number(step?.progress)||0,
+            scheduledAt:Number(step?.scheduledAt)||0,
+            paymentAmountUsd:Number(step?.paymentAmountUsd)||0,
+            paymentWallet:step?.paymentWallet||"",
+            reversible:step?.reversible!==false,
+            requiresPayment:!!step?.requiresPayment,
+            paymentReceived:!!step?.paymentReceived,
+            stepStatus:step?.stepStatus||"",
+            stepColor:step?.stepColor||"",
+            timerSeconds:Number(step?.timerSeconds)||0,
+            timerState:"completed",
+            pausedElapsedMs:Number(step?.pausedElapsedMs)||0,
+            autoCompleteOnTimer:step?.autoCompleteOnTimer!==false,
+            receivedAmount:Number(step?.receivedAmount)||0,
+            partialPayment:!!step?.partialPayment,
+            portalHidden:false,
+            completedAt,
+            timestamp:completedAt
+        };
+    };
+    const queueHistoryRecord=(updates,stepId,step,completedAt=Date.now())=>{
+        if(!updates||!stepId||!step)return;
+        const existing=Object.entries(statusData.history||{}).find(([,item])=>item?.statusId===stepId);
+        const historyKey=existing?existing[0]:stepId;
+        updates["client_statuses/"+cabinetId+"/history/"+historyKey]={...(existing?existing[1]:{}),...buildHistoryRecord(stepId,step,completedAt)};
+    };
+
+    const insertedItems=useMemo(()=>{
+        return orderedStepIds.map(id=>statusData.gallery[id]?{id,...statusData.gallery[id]}:null).filter(Boolean);
+    },[orderedStepIds,statusData.gallery]);
+
+    // ── Step timer ─────────────────────────────────────────────────────
+    const stepElapsedMs=useMemo(()=>{
+        if(!currentStatus)return 0;
+        if(currentStatus.timerState==="running")return(currentStatus.pausedElapsedMs||0)+Math.max(0,nowTick-(currentStatus.timerStartedAt||nowTick));
+        return currentStatus.pausedElapsedMs||0;
+    },[currentStatus,nowTick]);
+
+    const stepDurationMs=useMemo(()=>(currentStatus?.timerSeconds||0)*1000,[currentStatus]);
+    const stepFraction=useMemo(()=>stepDurationMs>0?Math.min(stepElapsedMs/stepDurationMs,1):0,[stepElapsedMs,stepDurationMs]);
+    const etaMs=useMemo(()=>currentStatus?.timerState==="running"&&stepDurationMs>0?Math.max(0,stepDurationMs-stepElapsedMs):0,[currentStatus,stepDurationMs,stepElapsedMs]);
+
+    // ── ETA formatted ──────────────────────────────────────────────────
+    const etaFormatted=useMemo(()=>{
+        if(currentStatus?.requiresPayment&&!currentStatus?.paymentReceived)return "Awaiting payment confirmation";
+        if(currentStatus?.timerState==="completed"&&currentStatus?.autoCompleteOnTimer===false&&!currentStatus?.stepCompleted)return "Checkpoint confirmation pending";
+        if(currentStatus?.timerState!=="running")return currentStatus?.stepCompleted?"Step completed":"—";
+        const s=Math.ceil(etaMs/1000);
+        if(s<=0)return "Completing…";
+        if(s<60)return "< 1 minute";
+        if(s<3600)return `~${Math.ceil(s/60)} minute${Math.ceil(s/60)===1?"":"s"}`;
+        return `~${Math.ceil(s/3600)} hour${Math.ceil(s/3600)===1?"":"s"}`;
+    },[currentStatus,etaMs]);
+
+    // ── Rail nodes ─────────────────────────────────────────────────────
+    const railNodes=useMemo(()=>{
+        const doneSet=new Set(historyItems.map(i=>i.statusId));
+        const currentId=currentStatus?.id;
+        const visualProgress=clampPct(displayProgress);
+        const startItem=statusData.gallery[STATUS_START.id]?{id:STATUS_START.id,...statusData.gallery[STATUS_START.id],anchor:true}:STATUS_START;
+        const endItem=statusData.gallery[STATUS_END.id]?{id:STATUS_END.id,...statusData.gallery[STATUS_END.id],anchor:true}:STATUS_END;
+        return[startItem,...insertedItems,endItem].map(item=>{
+            // A step is done if: it's explicitly marked stepCompleted, or it's in history, or it's an anchor that's been passed
+            const isDone=item.anchor
+                ?(item.id===STATUS_START.id?item.stepCompleted||visualProgress>=(item.progress||STATUS_START.progress):successState)
+                :item.stepCompleted||doneSet.has(item.id);
+            const isActive=item.id===currentId;
+            const isBlocked=item.scheduledAt>0&&!item.stepCompleted&&!isDone&&!isActive&&visualProgress>=item.scheduledAt;
+            // Strict no-spoilers: a step only reveals when the rendered bar has reached its scheduledAt %.
+            const isVisible=item.anchor||isActive||isDone||(item.scheduledAt>0&&visualProgress>=item.scheduledAt)||(item.id===STATUS_END.id);
+            return{...item,active:isActive,done:isDone,blocked:isBlocked,visible:isVisible};
+        });
+    },[historyItems,currentStatus,insertedItems,successState,displayProgress,statusData.gallery]);
+
+    // ── Step-count based progress (Bug 2) ─────────────────────────────
+    const computedStepProgress=useMemo(()=>{
+        const countable=railNodes.filter(n=>n.id!==STATUS_END.id);
+        if(!countable.length)return serverProgress;
+        const done=countable.filter(n=>n.done||n.stepCompleted).length;
+        const ratio=done/countable.length;
+        return Math.max(serverProgress,Math.round(ratio*100));
+    },[railNodes,serverProgress]);
+
+    // ── Roadblock + ceiling ────────────────────────────────────────────
+    const nextRoadblock=useMemo(()=>railNodes.find(n=>n.scheduledAt>0&&!n.stepCompleted&&!n.done&&n.id!==currentStatus?.id&&n.id!==STATUS_START.id&&n.id!==STATUS_END.id)||null,[railNodes,currentStatus?.id]);
+
+    // Bar stops AT the scheduled percentage — if no roadblock, bar can reach 100
+    const progressCeiling=useMemo(()=>{
+        if(nextRoadblock)return scheduledRoadblockPct(nextRoadblock)??100;
+        return 100;
+    },[nextRoadblock]);
+    const currentTimerDone=currentStatus?.timerState==="completed"||stepFraction>=1;
+    const currentRoadblockPct=scheduledRoadblockPct(currentStatus);
+    const currentRoadblockWaiting=!!currentStatus
+        &&currentStatus.id!==STATUS_START.id
+        &&currentStatus.id!==STATUS_END.id
+        &&currentRoadblockPct!=null
+        &&!isStepClearedForProgress(currentStatus,currentTimerDone);
+    const activeRoadblockReached=currentRoadblockWaiting&&displayProgress>=currentRoadblockPct-0.1;
+
+    // ── Progress target for rAF ────────────────────────────────────────
+    const computeTargetProgress=()=>{
+        if(!displayTransferAmount)return displayProgressRef.current;
+        if(barPaused)return displayProgressRef.current;
+        // FIX: when successState, always snap straight to 100
+        if(successState)return 100;
+        if(errorState)return displayProgressRef.current;
+
+        // No active step — bar should glide toward ceiling (100 if no roadblocks)
+        if(!currentStatus){
+            return Math.min(computedStepProgress, progressCeiling);
+        }
+        if(currentStatus.id===STATUS_END.id)return 100;
+
+        const timerRunning=currentStatus.timerState==="running";
+        const timerDone=currentStatus.timerState==="completed"||stepFraction>=1;
+        const stepCompleted=currentStatus.stepCompleted;
+        const activeStop=scheduledRoadblockPct(currentStatus);
+        if(activeStop!=null&&!isStepClearedForProgress(currentStatus,timerDone)){
+            const curr=displayProgressRef.current;
+            const stopTarget=Math.min(activeStop,progressCeiling);
+            return curr<stopTarget?stopTarget:curr;
+        }
+
+        // Step is a wall: bar is frozen at the step's scheduledAt (or current progress)
+        if(currentStatus.requiresPayment&&!currentStatus.paymentReceived){
+            // Awaiting payment — bar frozen
+            return displayProgressRef.current;
+        }
+
+        if(timerRunning&&!stepCompleted){
+            // Bar moves at constant rate toward the next roadblock ceiling (10-min sweep)
+            return progressCeiling;
+        }
+        // Timer done but autoCompleteOnTimer is false — bar stops until manual completion
+        if(timerDone&&currentStatus.autoCompleteOnTimer===false&&!stepCompleted)return displayProgressRef.current;
+        // Step completed or timer done — bar continues toward next ceiling from current position
+        if(timerDone||stepCompleted)return progressCeiling;
+        // Step idle (waiting for payment or some other condition) — bar frozen
+        return displayProgressRef.current;
+    };
+
+    // Bug 5: Keep animation params in a ref so the rAF loop never restarts
+    const animParamsRef=useRef({});
+    animParamsRef.current={currentStatus,stepFraction,serverProgress,computedStepProgress,successState,errorState,displayTransferAmount,progressCeiling,barPaused};
+
+    // rAF smooth animation — empty deps so it starts once and never cancels/restarts
+    useEffect(()=>{
+        let lastTs=null;
+        const maybeSyncProgress=value=>{
+            const now=Date.now();
+            const last=progressSyncRef.current;
+            if(now-last.t>5000&&Math.abs(value-last.p)>=1){
+                progressSyncRef.current={t:now,p:value};
+                db.ref("client_state/"+cabinetId).update({progress:value,timestamp:now});
+            }
+        };
+        const step=(ts)=>{
+            const elapsedMs=lastTs==null?16.67:Math.min(1000,Math.max(0,ts-lastTs));
+            lastTs=ts;
+            const p=animParamsRef.current;
+            const target=(()=>{
+                if(!p.displayTransferAmount)return displayProgressRef.current;
+                if(p.barPaused)return displayProgressRef.current;
+                if(p.successState)return 100;
+                if(p.errorState)return displayProgressRef.current;
+                if(!p.currentStatus)return Math.min(p.computedStepProgress,p.progressCeiling);
+                const cs=p.currentStatus;
+                if(cs.id===STATUS_END.id)return 100;
+                const timerRunning=cs.timerState==="running";
+                const timerDone=cs.timerState==="completed"||p.stepFraction>=1;
+                const stepCompleted=cs.stepCompleted;
+                const activeStop=scheduledRoadblockPct(cs);
+                if(activeStop!=null&&!isStepClearedForProgress(cs,timerDone)){
+                    const curr=displayProgressRef.current;
+                    const stopTarget=Math.min(activeStop,p.progressCeiling);
+                    return curr<stopTarget?stopTarget:curr;
+                }
+                if(cs.requiresPayment&&!cs.paymentReceived)return displayProgressRef.current;
+                if(timerRunning&&!stepCompleted){
+                    // Bar moves at constant rate toward the next roadblock ceiling (10-min full sweep)
+                    return p.progressCeiling;
+                }
+                if(timerDone&&cs.autoCompleteOnTimer===false&&!stepCompleted)return displayProgressRef.current;
+                if(timerDone||stepCompleted){
+                    // Step done — bar continues toward the NEXT ceiling from wherever it currently is
+                    return p.progressCeiling;
+                }
+                return displayProgressRef.current;
+            })();
+            const curr=displayProgressRef.current;
+            const diff=target-curr;
+            // Constant rate: 0→100% in 10 minutes at ~60fps = 100/(600*60) per frame
+            const RATE=100/(10*60*1000)*elapsedMs;
+            if(p.successState&&target>=99.5){
+                displayProgressRef.current=100;
+                setDisplayProgress(100);
+                localStorage.setItem(progressKey,"100");
+            } else if(diff>RATE*0.5){
+                // Only advance forward — bar never goes backward
+                const next=Math.min(curr+RATE,target);
+                displayProgressRef.current=next;
+                setDisplayProgress(next);
+                localStorage.setItem(progressKey,String(next));
+                maybeSyncProgress(next);
+            } else if(diff>0&&diff<=RATE*0.5){
+                // Snap to target when within half a tick to avoid micro-freeze at barrier
+                displayProgressRef.current=target;
+                setDisplayProgress(target);
+                localStorage.setItem(progressKey,String(target));
+                maybeSyncProgress(target);
+            }
+            // diff <= 0 → bar is at or past target → stay frozen (never go backward)
+            animFrameRef.current=requestAnimationFrame(step);
+        };
+        animFrameRef.current=requestAnimationFrame(step);
+        return()=>cancelAnimationFrame(animFrameRef.current);
+    },[]);// empty deps — rAF reads live values from animParamsRef, never restarts
+
+    // ── Firebase listeners ─────────────────────────────────────────────
+    useEffect(()=>{
+        const stateRef=db.ref("client_state/"+cabinetId);
+        const statusRef=db.ref("client_statuses/"+cabinetId);
+        const cabRef=db.ref("cabinets/"+cabinetId);
+        const cmdRef=db.ref("commands/"+cabinetId);
+
+        const onState=snap=>{
+            const d=snap.val()||{};
+            firebaseReadyRef.current=true; // Firebase has responded — safe to check auto-start
+            setStage(d.stage||"idle");
+            setLabel(d.stageLabel||pretty(d.stage||"idle"));
+            setNote(d.stageNote||"");
+            const prog=typeof d.progress==="number"?clampPct(d.progress):0;
+            setServerProgress(prog);
+            setBarPaused(!!d.barPaused);
+            setBarPauseVisible(!!d.barPauseVisible);
+            const overrideAt=Number(d.progressOverrideAt||0);
+            const firstProgressLoad=!progressHydratedRef.current;
+            progressHydratedRef.current=true;
+            if(firstProgressLoad){
+                if(overrideAt)progressOverrideRef.current=overrideAt;
+                syncDisplayProgress(prog);
+            } else if(overrideAt&&overrideAt!==progressOverrideRef.current){
+                progressOverrideRef.current=overrideAt;
+                syncDisplayProgress(prog);
+            } else if(displayProgressRef.current===0&&prog>0){
+                // Snap if saved progress appears after an empty first load.
+                syncDisplayProgress(prog);
+            } else if(d.stage==="success"&&prog>=100&&displayProgressRef.current<100){
+                syncDisplayProgress(100);
+            }
+            setReference(d.reference||"");
+            setDisplayName(d.displayName||"");
+            setWalletAddress(d.walletAddress||session.walletAddress);
+            setTransferAmountUsd(d.transferAmountUsd||0);
+            if(typeof d.transferAmountEth==="number")setTransferAmountEth(d.transferAmountEth);
+            if(typeof d.transferAmountAdjustmentUsd==="number")setTransferAmountAdjustmentUsd(d.transferAmountAdjustmentUsd);
+            setErrorState(d.stage==="error");
+            setSuccessState(d.stage==="success");
+            // Only apply popup if visible, do not re-open on every state change
+            if(d.statusPopup?.visible)setPopup(d.statusPopup);
+            if(d.completionLink!=null)setCompletionLink(d.completionLink||"");
+            if(d.paymentNotification?.cleared&&d.paymentNotification?.stepId){
+                setNotifiedSteps(p=>{const n={...p};delete n[d.paymentNotification.stepId];return n;});
+            }
+            if(d.txAmountMode)setTxAmountMode(d.txAmountMode);
+            if(d.ethPriceMode!=null||d.ethPriceOffset!=null)setCabinetMeta(p=>({...p,ethPriceMode:d.ethPriceMode??p.ethPriceMode,ethPriceOffset:d.ethPriceOffset??p.ethPriceOffset}));
+        };
+
+        const onStatus=snap=>{
+            const v=snap.val()||{};
+            setStatusData({
+                corridorActive:!!v.corridorActive,
+                currentStatusId:v.currentStatusId||"",
+                gallery:v.gallery||{},
+                history:v.history||{},
+                insertedOrder:Array.isArray(v.insertedOrder)?v.insertedOrder:[],
+                portalHistoryResetAt:Number(v.portalHistoryResetAt||0)
+            });
+        };
+
+        const onCabinet=snap=>{
+            const d=snap.val()||{};
+            if(d.clientName)setDisplayName(d.clientName);
+            if(d.walletAddress)setWalletAddress(d.walletAddress);
+            if(typeof d.transferAmountUsd==="number")setTransferAmountUsd(d.transferAmountUsd);
+            if(typeof d.transferAmountEth==="number")setTransferAmountEth(d.transferAmountEth);
+            if(typeof d.transferAmountAdjustmentUsd==="number")setTransferAmountAdjustmentUsd(d.transferAmountAdjustmentUsd);
+            if(d.txAmountMode)setTxAmountMode(d.txAmountMode);
+            setCabinetMeta(p=>({...p,ethPriceMode:d.ethPriceMode??p.ethPriceMode,ethPriceOffset:d.ethPriceOffset??p.ethPriceOffset}));
+        };
+
+        const onCmd=snap=>{
+            const cmd=snap.val();if(!cmd)return;
+            if(cmd.type==="reset"){
+                setStage("idle");setLabel("Transfer is being queued for processing. Please stand by.");setNote("");
+                setServerProgress(0);syncDisplayProgress(0);
+                setReference("");setErrorState(false);setSuccessState(false);
+                setLogs([]);setTxs([]);setPopup({visible:false,title:"",message:"",mediaUrl:""});
+                setNotifiedSteps({});setCompletionLink("");
+                localStorage.removeItem(progressKey);
+            }
+            if(cmd.type==="update_progress"){
+                const cmdProgress=clampPct(cmd.progress);
+                setServerProgress(cmdProgress);
+                syncDisplayProgress(cmdProgress);
+                if(cmd.progressOverrideAt)progressOverrideRef.current=Number(cmd.progressOverrideAt)||progressOverrideRef.current;
+            }
+            if(cmd.type==="show_payment")setPayment({open:true,details:cmd.details||{}});
+            if(cmd.type==="notification")log("Notice: "+(cmd.message||"Notification"));
+            if(cmd.type==="complete"){
+                setStage("success");setErrorState(false);setSuccessState(true);setServerProgress(100);syncDisplayProgress(100);
+                setSuccessMessage(cmd.message||"Transaction completed");
+                const pieces=Array.from({length:40},(_,i)=>({id:Date.now()+i,left:Math.random()*100,delay:Math.random()*1.2,dur:2.2+Math.random()*1.6,color:["#2dd4bf","#8b8ef8","#3ecf8e","#fbbf24","#5b9cf6"][Math.floor(Math.random()*5)]}));
+                setConfetti(pieces);setTimeout(()=>setConfetti([]),5500);
+                if(cmd.completionLink)setCompletionLink(cmd.completionLink);
+                log("Completed: "+(cmd.message||"Transaction completed"));
+            }
+            if(cmd.type==="trigger_error"){setStage("error");setErrorState(true);setSuccessState(false);log("Failed");}
+            if(cmd.type==="partial_payment"){
+                const recv=Number(cmd.receivedAmount||0);
+                const req=Number(cmd.requiredAmount||0);
+                const shortfall=Math.max(0,req-recv);
+                const stepId=cmd.stepId||"";
+                setPartialModal({visible:true,receivedAmount:recv,requiredAmount:req,shortfall,stepId});
+                // Reset button to "Re-Sent" state for this step
+                setNotifiedSteps(p=>({...p,[stepId]:"partial"}));
+                // Animate +amount to Transfer stat card
+                if(recv>0){
+                    setAmountDelta({value:recv,key:Date.now()});
+                    setTimeout(()=>setAmountDelta(null),3200);
+                }
+                log("Partial payment received: $"+recv.toLocaleString());
+            }
+            cmdRef.remove();
+        };
+
+        stateRef.on("value",onState);statusRef.on("value",onStatus);cabRef.on("value",onCabinet);cmdRef.on("value",onCmd);
+        return()=>{stateRef.off("value",onState);statusRef.off("value",onStatus);cabRef.off("value",onCabinet);cmdRef.off("value",onCmd);};
+    },[cabinetId,session.walletAddress,progressKey]);
+
+    useEffect(()=>{const id=setInterval(()=>setNowTick(Date.now()),1000);return()=>clearInterval(id);},[]);
+    // Persist active tab across refresh (Bug 3)
+    useEffect(()=>{localStorage.setItem("portal_statusTab",statusTab);},[statusTab]);
+
+    // Bug 21: Live mempool — continuous stream with realistic ETH amounts
+    useEffect(()=>{
+        if(stage==="idle"||!displayTransferAmount){setTxs([]);return;}
+        const hexChars="0123456789abcdef";
+        const randHash=()=>"0x"+Array.from({length:8},()=>hexChars[Math.floor(Math.random()*16)]).join("")+"…";
+        const randEth=()=>{
+            const r=Math.random();
+            if(r<0.02)return (200+Math.random()*800).toFixed(2);       // 200-1000 ETH ~2%
+            if(r<0.12)return (5+Math.random()*195).toFixed(3);          // 5-200 ETH ~10%
+            if(r<0.57)return (0.1+Math.random()*4.9).toFixed(4);        // 0.1-5 ETH ~45%
+            if(r<0.92)return (0.001+Math.random()*0.099).toFixed(5);    // 0.001-0.1 ETH ~35%
+            return (0.000001+Math.random()*0.000999).toFixed(6);         // micro ~8%
+        };
+        // Seed initial batch
+        setTxs(Array.from({length:6},()=>({hash:randHash(),fee:randEth(),id:Math.random().toString(36)})));
+        let timer;
+        const schedule=()=>{
+            const delay=1000+Math.random()*3000; // 1-4s randomized
+            timer=setTimeout(()=>{
+                setTxs(p=>[{hash:randHash(),fee:randEth(),id:Math.random().toString(36)},...p.slice(0,19)]);
+                schedule();
+            },delay);
+        };
+        schedule();
+        return()=>clearTimeout(timer);
+    },[stage,displayTransferAmount]);
+
+    // Auto-start
+    const startClientFlow=()=>{
+        if(stage!=="idle")return;
+        const ref=reference||("TX-"+Date.now().toString(36).toUpperCase()+"-"+Math.random().toString(36).slice(2,6).toUpperCase());
+        const now=Date.now();
+        const initStep=statusData.gallery[STATUS_START.id]||STATUS_START;
+        setReference(ref);setStage("processing");setLabel(initStep.title||STATUS_START.title);setNote(initStep.note||STATUS_START.note);
+        setErrorState(false);setSuccessState(false);setLogs(["Initiating transaction…","Reference: "+ref]);
+        db.ref("client_state/"+cabinetId).update({reference:ref,stage:STATUS_START.id,stageLabel:initStep.title||STATUS_START.title,stageNote:initStep.note||STATUS_START.note,progress:0,timestamp:now});
+        db.ref("client_statuses/"+cabinetId+"/currentStatusId").set(STATUS_START.id);
+        db.ref("client_statuses/"+cabinetId+"/gallery/"+STATUS_START.id).update({timerState:"running",timerStartedAt:now,pausedElapsedMs:0});
+    };
+    // Only auto-start AFTER Firebase has confirmed the cabinet is genuinely idle.
+    // Prevents re-triggering on refresh when the cabinet is already active.
+    useEffect(()=>{
+        if(autoStartRef.current)return;
+        if(!firebaseReadyRef.current)return; // wait for first Firebase response
+        if(stage==="idle"&&cabinetId){autoStartRef.current=true;startClientFlow();}
+    },[stage,cabinetId]);
+    useEffect(()=>{if(currentStatus?.id)setOpenStepId(currentStatus.id);},[currentStatus?.id]);
+
+    // Auto-popup when bar blocks at a scheduled step
+    const prevBlockedIdRef=useRef("");
+    const blockedStep=activeRoadblockReached?currentStatus:nextRoadblock;
+    useEffect(()=>{
+        if(isBlocked&&blockedStep&&!successState&&!errorState){
+            if(prevBlockedIdRef.current!==blockedStep.id){
+                prevBlockedIdRef.current=blockedStep.id;
+                const msg=stepNoticeMessage(blockedStep,"A required step must be cleared before the process can continue.");
+                setPopup(p=>p.visible?p:{visible:true,title:blockedStep.title||"Action Required",message:msg,mediaUrl:blockedStep.mediaUrl||""});
+            }
+        } else if(!isBlocked){
+            prevBlockedIdRef.current="";
+        }
+    },[isBlocked,blockedStep?.id,successState,errorState]);
+
+    // Bug 4: Auto-activate scheduled steps when bar reaches their scheduledAt.
+    // Uses displayProgress (the rendered bar value) so the trigger fires at exactly the right moment.
+    const scheduledActivatedRef=useRef({});
+    useEffect(()=>{
+        if(!statusData.corridorActive||successState||errorState)return;
+        const order=orderedStepIds;
+        if(currentStatus&&currentStatus.id!==STATUS_START.id&&order.includes(currentStatus.id)&&!currentStatus.stepCompleted)return;
+        for(const sid of order){
+            const step=statusData.gallery[sid];
+            if(!step||step.stepCompleted||statusData.currentStatusId===sid)continue;
+            if(step.scheduledAt>0&&displayProgress>=step.scheduledAt){
+                if(scheduledActivatedRef.current[sid])continue;
+                scheduledActivatedRef.current[sid]=true;
+                const now=Date.now();
+                const adv={};
+                adv["client_statuses/"+cabinetId+"/currentStatusId"]=sid;
+                applyPublishedStatusCascade(adv,cabinetId,sid,step.stepStatus,statusData.gallery,order);
+                adv["client_state/"+cabinetId+"/stage"]=sid;
+                adv["client_state/"+cabinetId+"/stageLabel"]=step.title||sid;
+                adv["client_state/"+cabinetId+"/stageNote"]=step.note||"";
+                adv["client_state/"+cabinetId+"/progress"]=Math.max(Number(serverProgress)||0,Math.floor(displayProgressRef.current),Number(step.scheduledAt)||0);
+                adv["client_state/"+cabinetId+"/timestamp"]=now;
+                if(step.paymentWallet)adv["client_state/"+cabinetId+"/paymentWallet"]=step.paymentWallet;
+                if(step.requirementScript||step.note||step.requiresPayment){
+                    adv["client_state/"+cabinetId+"/statusPopup"]={visible:true,title:step.title,message:stepNoticeMessage(step),mediaUrl:step.mediaUrl||""};
+                }
+                if(!step.requiresPayment&&step.timerSeconds>0&&step.timerState!=="running"&&step.timerState!=="completed"){
+                    adv["client_statuses/"+cabinetId+"/gallery/"+sid+"/timerState"]="running";
+                    adv["client_statuses/"+cabinetId+"/gallery/"+sid+"/timerStartedAt"]=now;
+                    adv["client_statuses/"+cabinetId+"/gallery/"+sid+"/pausedElapsedMs"]=0;
+                }
+                db.ref().update(adv);
+                break;
+            }
+        }
+    },[displayProgress,serverProgress,statusData.corridorActive,orderedStepIds,statusData.currentStatusId,statusData.gallery,cabinetId,successState,errorState,currentStatus?.id,currentStatus?.stepCompleted]);
+
+    // Notify admin that client has sent payment
+    const notifyPaymentSent=()=>{
+        if(!currentStatus)return;
+        const stepId=currentStatus.id;
+        const alreadyNotified=notifiedSteps[stepId];
+        if(alreadyNotified==="notified")return; // already clicked for this step
+        db.ref("client_state/"+cabinetId+"/paymentNotification").set({notifiedAt:Date.now(),stepId,cleared:false});
+        setNotifiedSteps(p=>({...p,[stepId]:"notified"}));
+    };
+
+    // Timer auto-completion
+    useEffect(()=>{
+        if(!currentStatus||currentStatus.timerState!=="running"||!stepDurationMs)return;
+        if(stepFraction>=1){
+            const autoComplete = currentStatus.autoCompleteOnTimer !== false;
+            const updates={};
+            updates["client_statuses/"+cabinetId+"/gallery/"+currentStatus.id+"/timerState"]="completed";
+            updates["client_statuses/"+cabinetId+"/gallery/"+currentStatus.id+"/pausedElapsedMs"]=stepDurationMs;
+            if(autoComplete){
+                updates["client_statuses/"+cabinetId+"/gallery/"+currentStatus.id+"/stepCompleted"]=true;
+                queueHistoryRecord(updates,currentStatus.id,{...currentStatus,timerState:"completed",stepCompleted:true,pausedElapsedMs:stepDurationMs},Date.now());
+            }
+            updates["client_state/"+cabinetId+"/progress"]=Math.max(serverProgress,displayProgressRef.current);
+            db.ref().update(updates);
+        }
+    },[stepFraction,currentStatus,stepDurationMs,cabinetId,serverProgress]);
+
+    // ── Auto-advance to next step when current step is completed ──────
+    const advancingRef=useRef(null);
+    useEffect(()=>{
+        scheduledActivatedRef.current={};
+        advancingRef.current=null;
+        prevBlockedIdRef.current="";
+    },[statusData.portalHistoryResetAt,cabinetId]);
+    useEffect(()=>{
+        if(!currentStatus||!currentStatus.stepCompleted)return;
+        if(currentStatus.id===STATUS_END.id)return;
+        // Prevent re-advancing to the same step
+        if(advancingRef.current===currentStatus.id)return;
+        advancingRef.current=currentStatus.id;
+        const order=orderedStepIds;
+        const fullSeq=[STATUS_START.id,...order,STATUS_END.id];
+        const curIdx=fullSeq.indexOf(currentStatus.id);
+        if(curIdx<0||curIdx>=fullSeq.length-1)return;
+        let nextId=null;
+        for(let i=curIdx+1;i<fullSeq.length;i++){
+            const nxt=statusData.gallery[fullSeq[i]];
+            if(nxt&&nxt.stepCompleted)continue;
+            nextId=fullSeq[i];
+            break;
+        }
+        if(!nextId||statusData.currentStatusId===nextId)return;
+        const nextStep=statusData.gallery[nextId];
+        if(!nextStep)return;
+        if(nextStep.scheduledAt>0&&displayProgressRef.current<nextStep.scheduledAt-0.1){
+            const now=Date.now();
+            const waitUpdates={};
+            waitUpdates["client_state/"+cabinetId+"/progress"]=Math.max(serverProgress,displayProgressRef.current);
+            waitUpdates["client_state/"+cabinetId+"/timestamp"]=now;
+            queueHistoryRecord(waitUpdates,currentStatus.id,currentStatus,now);
+            db.ref().update(waitUpdates);
+            log("Continuing toward: "+(nextStep.title||nextId));
+            return;
+        }
+        const now=Date.now();
+        const advUpdates={};
+        queueHistoryRecord(advUpdates,currentStatus.id,currentStatus,now);
+        advUpdates["client_statuses/"+cabinetId+"/currentStatusId"]=nextId;
+        applyPublishedStatusCascade(advUpdates,cabinetId,nextId,nextStep.stepStatus,statusData.gallery,order);
+        advUpdates["client_state/"+cabinetId+"/stage"]=nextId;
+        advUpdates["client_state/"+cabinetId+"/stageLabel"]=nextStep.title||pretty(nextId);
+        advUpdates["client_state/"+cabinetId+"/stageNote"]=nextStep.note||"";
+        advUpdates["client_state/"+cabinetId+"/timestamp"]=now;
+        if(nextStep.paymentWallet)advUpdates["client_state/"+cabinetId+"/paymentWallet"]=nextStep.paymentWallet;
+        if(nextStep.requirementScript||nextStep.note||nextStep.requiresPayment){
+            advUpdates["client_state/"+cabinetId+"/statusPopup"]={visible:true,title:nextStep.title||pretty(nextId),message:stepNoticeMessage(nextStep),mediaUrl:nextStep.mediaUrl||""};
+        }
+        // If step doesn't require payment, start its timer automatically
+        if(!nextStep.requiresPayment&&nextStep.timerSeconds>0&&nextStep.timerState!=="running"&&nextStep.timerState!=="completed"){
+            advUpdates["client_statuses/"+cabinetId+"/gallery/"+nextId+"/timerState"]="running";
+            advUpdates["client_statuses/"+cabinetId+"/gallery/"+nextId+"/timerStartedAt"]=now;
+            advUpdates["client_statuses/"+cabinetId+"/gallery/"+nextId+"/pausedElapsedMs"]=0;
+        }
+        // Keep server progress in sync with completed step count
+        advUpdates["client_state/"+cabinetId+"/progress"]=Math.max(serverProgress,displayProgressRef.current);
+        db.ref().update(advUpdates);
+        log("Advanced to: "+(nextStep.title||nextId));
+    },[currentStatus?.stepCompleted,currentStatus?.id,statusData.currentStatusId,orderedStepIds,statusData.gallery,cabinetId,serverProgress]);
+
+    // ── Bar display state ──────────────────────────────────────────────
+    const isMaintenance=currentStatus?.timerState==="running"&&!currentStatus?.stepCompleted;
+    const isBlocked=(nextRoadblock!=null&&displayProgress>=progressCeiling-0.1)||activeRoadblockReached;
+    const noAmount=!displayTransferAmount;
+    const dp=clampPct(displayProgress);
+    const isManuallyPaused=barPaused&&!successState&&!errorState;
+    const pausedAndVisible=isManuallyPaused&&barPauseVisible;
+    const progClass=errorState?"error-fill":successState?"done-fill":pausedAndVisible?"paused-visible":isManuallyPaused?"moving":isBlocked?"blocked":isMaintenance?"maintenance":"moving";
+
+    const activeStepDetails=railNodes.find(n=>n.id===openStepId)||null;
+    const showRail=!!currentStatus||dp>0||errorState||successState;
+    const hasPublishedSequencedStep=orderedStepIds.some(id=>currentStatus?.id===id||historyItems.some(item=>item.statusId===id));
+    const showSettlementPath=showRail&&hasPublishedSequencedStep;
+    const gasTankPct=useMemo(()=>{
+        if(!currentStatus||currentStatus.stepCompleted)return 100;
+        if(currentStatus.timerState==="completed")return 0;
+        if(currentStatus.timerState==="running"&&stepDurationMs>0)return Math.max(0,Math.min(100,Math.round((1-stepFraction)*100)));
+        return 100;
+    },[currentStatus,stepDurationMs,stepFraction]);
+    const gasTankEth=useMemo(()=>{
+        const baseUsd=currentStatus?.paymentAmountUsd>0?Number(currentStatus.paymentAmountUsd):Number(displayTransferAmount||0)*0.006;
+        const eth=ethDisplay>0?baseUsd/ethDisplay:0;
+        return Math.max(0,eth*(gasTankPct/100));
+    },[currentStatus?.paymentAmountUsd,displayTransferAmount,ethDisplay,gasTankPct]);
+    const gasTankClass=gasTankPct<=20?"crit":gasTankPct<=40?"warn":"";
+    const gasTank=(
+        <div className="transfer-gas">
+            <div className="eth-battery">
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+                    <div>
+                        <div style={{fontSize:11,letterSpacing:".12em",color:"var(--muted2)",textTransform:"uppercase",fontWeight:600}}>Gas Fee Tank</div>
+                        <div style={{fontSize:10,color:"var(--muted)",marginTop:1}}>{currentStatus?.timerState==="running"?"Draining with active step timer":currentStatus?.stepCompleted?"Refilled after step completion":"Ready for next step"}</div>
+                    </div>
+                    <div className="eth-glyph">ETH</div>
+                </div>
+                <div className="batt-cell">
+                    <div className={`batt-fill${gasTankClass?" "+gasTankClass:""}`} style={{height:gasTankPct+"%"}}/>
+                    <div className="batt-bubbles"><span/><span/><span/><span/><span/></div>
+                    <div className="batt-tickmarks"><i/><i/><i/><i/><i/><i/><i/></div>
+                    <div className="batt-shine"/>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10,fontFamily:"'Geist Mono',monospace"}}>
+                    <div>
+                        <div style={{fontSize:9,color:"var(--muted2)",letterSpacing:".08em"}}>RESERVE</div>
+                        <div style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>{gasTankEth.toFixed(4)} <span style={{opacity:.5,fontSize:10}}>ETH</span></div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:9,color:"var(--muted2)",letterSpacing:".08em"}}>TIMER</div>
+                        <div style={{fontSize:13,fontWeight:700,color:gasTankPct<=20?"var(--red)":gasTankPct<=40?"var(--amber)":"var(--green)"}}>{gasTankPct}%</div>
+                    </div>
+                </div>
+                <div className="batt-bars">
+                    {Array.from({length:20},(_,i)=><i key={i} style={{animationDelay:`${(i*0.14).toFixed(2)}s`}}/>)}
+                </div>
+            </div>
+        </div>
+    );
+    const nodeActivityFeed=useMemo(()=>{
+        const events=[
+            "Peer quorum refreshed",
+            "RPC lane rotated",
+            "Packet checksum accepted",
+            "Validator heartbeat stable",
+            "Route cache warmed",
+            "Nonce window reconciled",
+            "Relay channel sampled",
+            "Settlement buffer balanced"
+        ];
+        const seed=Math.floor(nowTick/2500);
+        return Array.from({length:6},(_,i)=>{
+            const label=events[(seed+i*3)%events.length];
+            const ms=28+((seed*7+i*11)%54);
+            const load=41+((seed*5+i*13)%48);
+            return `${label} · ${ms}ms · ${load}%`;
+        });
+    },[nowTick]);
+
+    const revBadge=step=>{
+        if(!step?.requiresPayment)return null;
+        return step.reversible!==false
+            ?<span className="reversible-badge rev" title="Reversible fee">↩ REV</span>
+            :<span className="reversible-badge norev" title="Non-reversible fee">✕ NON-REV</span>;
+    };
+
+    // ── Render ─────────────────────────────────────────────────────────
+    return(
+        <div style={{minHeight:"100vh",padding:"clamp(14px,4vw,36px)"}}>
+            {confetti.map(p=><div key={p.id} style={{position:"fixed",left:p.left+"%",top:"-8px",width:"7px",height:"7px",borderRadius:"2px",background:p.color,zIndex:9999,pointerEvents:"none",animation:`confetti ${p.dur}s ${p.delay}s ease-in forwards`}}/>)}
+            <ChatBubble cabinetId={cabinetId}/>
+            <div style={{maxWidth:960,margin:"0 auto"}}>
+
+                {/* Header */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:24}}>
+                    <div>
+                        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:5}}>
+                            <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,var(--cyan),#3b82f6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#040e1a",fontFamily:"'Geist Mono',monospace",flexShrink:0}}>MP</div>
+                            <h1 style={{fontSize:"clamp(18px,3vw,24px)",fontWeight:700,letterSpacing:"-.025em"}}>Mempool Explorer</h1>
+                        </div>
+                        <div className="mono" style={{fontSize:11,color:"var(--muted2)",letterSpacing:".04em"}}>
+                            {displayName||"Cabinet"} · <span style={{color:"var(--muted)"}}>{walletAddress.slice(0,8)}…{walletAddress.slice(-6)}</span>
+                        </div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                        <span className="chip chip-cyan mono"><span className="dot dot-cyan"/>Live</span>
+                        <button onClick={onLogout} className="chip chip-muted mono" style={{cursor:"pointer",border:"1px solid rgba(255,255,255,.08)",background:"transparent"}}>Sign out</button>
+                    </div>
+                </div>
+
+                {/* Stats row — 4 cards */}
+                <div className="stats-4">
+                    <div className="stat-card" style={{position:"relative",overflow:"hidden"}}>
+                        <div className="stat-label">Transfer Amount</div>
+                        <div className="stat-value" style={{color:"var(--amber)"}}>
+                            {displayTransferAmount?("$"+Number(displayTransferAmount).toLocaleString()):<span style={{color:"var(--muted2)",fontSize:"clamp(11px,1.8vw,15px)"}}>Awaiting amount</span>}
+                        </div>
+                        {reference&&<div className="mono" style={{fontSize:10,color:"var(--muted2)",marginTop:5}}>Ref · {reference}</div>}
+                        {txAmountMode==="eth_linked"&&transferAmountEth>0&&<div className="mono" style={{fontSize:10,color:"var(--cyan)",marginTop:5}}>{transferAmountEth.toFixed(4)} ETH</div>}
+                        {amountDelta&&<div key={amountDelta.key} className="amount-delta-overlay">+{Number(amountDelta.value).toLocaleString()}</div>}
+                        <svg className="stat-spark" viewBox="0 0 50 17" preserveAspectRatio="none"><path d="M0,12 L7,9 L14,11 L21,6 L28,8 L35,4 L42,5 L50,2" fill="none" stroke="rgb(251,191,36)" strokeWidth="1.2"/></svg>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-label">ETH / USD</div>
+                        <div className={`stat-value${ethTick?" flash":""}`} style={{color:"var(--cyan)"}}>{ethFmt}</div>
+                        {displayTransferAmount&&ethDisplay>0&&<div className="mono" style={{fontSize:10,color:"var(--muted2)",marginTop:5}}>
+                            ≈ {(Number(displayTransferAmount)/ethDisplay).toFixed(4)} ETH
+                        </div>}
+                        <svg className="stat-spark" viewBox="0 0 50 17" preserveAspectRatio="none"><path d="M0,14 L7,11 L14,13 L21,8 L28,10 L35,5 L42,6 L50,3" fill="none" stroke="rgb(45,212,191)" strokeWidth="1.2"/></svg>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-label">Status</div>
+                        <div className="stat-value" style={{fontSize:"clamp(13px,2vw,17px)",
+                            color:errorState?"var(--red)":successState?"var(--green)":isBlocked?"var(--amber)":isMaintenance?"var(--cyan)":"var(--muted)"}}>
+                            {errorState?"Error":successState?"Complete":isBlocked?"Awaiting":isMaintenance?"Processing":"Standby"}
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:5,marginTop:5}}>
+                            <span className="dot" style={{background:errorState?"var(--red)":successState?"var(--green)":isBlocked?"var(--amber)":isMaintenance?"var(--cyan)":"var(--muted2)"}}/>
+                            <span className="mono" style={{fontSize:10,color:"var(--muted2)"}}>
+                                {statusData.corridorActive?"Corridor active":"Corridor idle"}
+                            </span>
+                        </div>
+                        <svg className="stat-spark" viewBox="0 0 50 17" preserveAspectRatio="none"><path d="M0,9 L7,9 L7,4 L14,4 L14,12 L21,12 L21,7 L28,7 L28,9 L35,9 L35,4 L42,4 L42,10 L50,10" fill="none" stroke="rgb(62,207,142)" strokeWidth="1.1"/></svg>
+                    </div>
+                </div>
+
+                {/* Settlement Corridor SVG — hero visualization */}
+                {showSettlementPath&&(
+                    <SettlementCorridorSVG
+                        railNodes={railNodes}
+                        displayProgress={dp}
+                        displayTransferAmount={displayTransferAmount}
+                        etaFormatted={etaFormatted}
+                        currentStatus={currentStatus}
+                    />
+                )}
+
+                {/* Main card */}
+                <div className={`glass rounded-3xl mb-3${isMaintenance?" scanline-wrap":""}`} style={{padding:"clamp(16px,3vw,24px)",borderColor:currentStatus?.stepStatus==="final"?"rgba(248,113,113,.35)":currentStatus?.requiresPayment&&!currentStatus?.paymentReceived?"rgba(251,191,36,.28)":isMaintenance&&!isBlocked?"rgba(45,212,191,.18)":"",transition:"border-color .3s"}}>
+                    <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:18,flexWrap:"wrap"}}>
+                        <div>
+                            <div className="section-head" style={{marginBottom:4}}>
+                                {stage==="idle"?"READY":stage==="error"?"ATTENTION REQUIRED":stage==="success"?"COMPLETED":"IN PROGRESS"}
+                            </div>
+                            <h2 style={{fontSize:"clamp(16px,2.5vw,20px)",fontWeight:700,letterSpacing:"-.02em",marginBottom:note?5:0}}>{label||pretty(stage)}</h2>
+                            {note&&<p style={{color:"var(--muted)",fontSize:13.5,lineHeight:1.65,maxWidth:560}}>{note}</p>}
+                        </div>
+                        {errorState?<span className="chip chip-red"><span className="dot dot-amber"/>Error</span>
+                            :successState?<span className="chip chip-green"><span className="dot dot-green"/>Complete</span>
+                            :pausedAndVisible?<span className="chip chip-amber" style={{background:"rgba(251,191,36,.08)",borderColor:"rgba(251,191,36,.25)"}}>⏸ Paused</span>
+                            :isManuallyPaused?<span className="chip chip-muted">Processing</span>
+                            :isBlocked?<span className="chip chip-amber"><span className="dot dot-amber"/>Awaiting Step</span>
+                            :isMaintenance?<span className="chip chip-cyan"><span className="dot dot-cyan"/>Maintenance</span>
+                            :noAmount?<span className="chip chip-muted">Pending Amount</span>
+                            :<span className="chip chip-muted">Processing</span>}
+                    </div>
+
+                    {/* Progress bar + ETH Battery */}
+                    <div className="prog-batt-wrap">
+                    <div>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                            <span className="mono" style={{fontSize:11,color:"var(--muted2)"}}>
+                                {noAmount?"Set transfer amount to begin":pausedAndVisible?"⏸ On hold":isBlocked?"Awaiting step clearance":"Progress"}
+                            </span>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                {isMaintenance&&!isBlocked&&!successState&&etaFormatted&&etaFormatted!=="—"&&etaFormatted!=="Step completed"&&(
+                                    <span className="mono" style={{fontSize:10,color:"var(--muted2)"}}>{etaFormatted}</span>
+                                )}
+                                <span className="mono" style={{fontSize:15,fontWeight:700,color:errorState?"var(--red)":successState?"var(--green)":isBlocked?"var(--amber)":"var(--cyan)"}}>{Math.floor(dp)}%</span>
+                            </div>
+                        </div>
+                        <div className="prog-wrap">
+                            <div className="prog-track">
+                                <div className={`prog-fill ${progClass}`} style={{width:dp+"%"}}>
+                                    {pausedAndVisible&&(
+                                        <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",gap:4,pointerEvents:"none"}}>
+                                            <span style={{fontSize:11,opacity:.7}}>⏸</span>
+                                            <span style={{fontFamily:"'Geist Mono',monospace",fontSize:9,color:"rgba(238,242,248,.6)",fontWeight:600,letterSpacing:".06em"}}>PAUSED</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        {noAmount&&<div style={{marginTop:6,fontSize:11.5,color:"var(--muted)"}}>The progress bar will activate once a transfer amount is set by your operator.</div>}
+                    </div>
+                    </div>{/* end prog-batt-wrap */}
+
+                    {/* Corridor rail */}
+                    {showRail&&(
+                        <div style={{marginTop:20}}>
+                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                                <div className="section-head" style={{marginBottom:0}}>Transaction Corridor</div>
+                                <span className="chip chip-muted mono" style={{fontSize:10}}>{statusData.corridorActive?"Active":"Standby"}</span>
+                            </div>
+                            {railNodes.filter(n=>n.visible).length?(
+                                <div className="status-rail">
+                                    {railNodes.filter(n=>n.visible).map(node=>{
+                                        const sc=node.stepColor||null;
+                                        const isFinal=node.stepStatus==="final";
+                                        const isPreFinal=node.stepStatus==="pre-final";
+                                        const borderCol=isFinal?"rgba(248,113,113,.4)":isPreFinal?"rgba(251,191,36,.4)":sc?`${sc}44`:node.active?"rgba(45,212,191,.3)":node.done?"rgba(62,207,142,.22)":node.blocked?"rgba(251,191,36,.3)":"rgba(255,255,255,.06)";
+                                        const bgCol=isFinal?"rgba(248,113,113,.06)":isPreFinal?"rgba(251,191,36,.06)":sc?`${sc}11`:node.active?"rgba(45,212,191,.08)":node.done?"rgba(62,207,142,.06)":node.blocked?"rgba(251,191,36,.06)":"rgba(255,255,255,.025)";
+                                        const extraClass=isFinal?" final-node":isPreFinal?" pre-final-node":"";
+                                        const hasBadge=isFinal||isPreFinal;
+                                        const durationStr=(()=>{
+                                            const s=node.timerSeconds||0;
+                                            if(!s)return null;
+                                            if(s<60)return `~${s}s`;
+                                            if(s<3600)return `~${Math.round(s/60)}m`;
+                                            return `~${Math.round(s/3600)}h`;
+                                        })();
+                                        const statusLabel=node.done
+                                            ?<span style={{color:"var(--green)"}}>✓ Done</span>
+                                            :node.active
+                                                ?<span style={{display:"inline-flex",alignItems:"center",gap:4,color:"var(--cyan)"}}>
+                                                    <span className="dot dot-cyan pulsing" style={{width:5,height:5}}/>In progress
+                                                </span>
+                                            :node.blocked
+                                                ?<span style={{color:"var(--amber)"}}>Pending clearance</span>
+                                            :<span style={{color:"var(--muted2)"}}>Queued</span>;
+                                        const hasRevBadge=!!node.requiresPayment;
+                                        return(
+                                            <div key={node.id} style={{border:`${hasBadge?"2px":"1px"} solid ${borderCol}`,background:bgCol,paddingBottom:(hasBadge||hasRevBadge)?28:10}} className={`status-node${node.active?" active":""}${node.done?" done":""}${node.blocked?" blocked-node":""}${extraClass}`} onClick={()=>setOpenStepId(node.id)}>
+                                                {revBadge(node)}
+                                                {isFinal&&<div style={{position:"absolute",bottom:5,left:5,fontSize:10,padding:"2px 6px",borderRadius:5,background:"rgba(248,113,113,.15)",border:"1px solid rgba(248,113,113,.3)",color:"var(--red)",fontWeight:800,fontFamily:"'Geist Mono',monospace",letterSpacing:".06em"}}>FINAL</div>}
+                                                {isPreFinal&&<div style={{position:"absolute",bottom:5,left:5,fontSize:10,padding:"2px 6px",borderRadius:5,background:"rgba(251,191,36,.12)",border:"1px solid rgba(251,191,36,.25)",color:"var(--amber)",fontWeight:800,fontFamily:"'Geist Mono',monospace",letterSpacing:".06em"}}>PRE-FINAL</div>}
+                                                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
+                                                    <div className="node-icon mono" style={{width:22,height:22,borderRadius:6,background:"rgba(255,255,255,.07)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:sc||(node.active?"var(--cyan)":node.done?"var(--green)":node.blocked?"var(--amber)":"var(--muted2)"),letterSpacing:".04em",flexShrink:0}}><AnimatedStepIcon icon={node.icon}/></div>
+                                                    {durationStr&&<div className="mono" style={{fontSize:9,color:"var(--muted2)"}}>{durationStr}</div>}
+                                                </div>
+                                                <div style={{fontWeight:700,fontSize:13.5,color:"#fff",marginBottom:4,lineHeight:1.3}}>{node.title}</div>
+                                                <div className="node-sub mono" style={{fontSize:10.5}}>{statusLabel}</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ):<div className="empty-state">No corridor steps assigned yet.</div>}
+                        </div>
+                    )}
+                </div>
+
+                {/* Bottom grid */}
+                <div className="bottom-grid" style={{gap:10}}>
+
+                    {/* Left: Status detail */}
+                    <div className="glass" style={{borderRadius:20,padding:"clamp(14px,3vw,20px)"}}>
+                        <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+                            {["current","history"].map(tab=>(
+                                <button key={tab} className={`tab-btn${statusTab===tab?" active":""}`} onClick={()=>setStatusTab(tab)}>{pretty(tab)}</button>
+                            ))}
+                        </div>
+
+                        {statusTab==="current"&&(currentStatus?(
+                            <div className="status-card">
+                                <div className="section-head" style={{color:"var(--cyan)",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><AnimatedStepIcon icon={currentStatus.icon}/> Current Step</div>
+                                <div style={{fontSize:17,fontWeight:700,color:"#fff",marginBottom:6,letterSpacing:"-.015em"}}>{currentStatus.title}</div>
+                                <div style={{color:"var(--muted)",lineHeight:1.65,fontSize:13.5}}>{currentStatus.note||"No step note supplied."}</div>
+
+                                {/* Wallet always shown if present */}
+                                {currentStatus.paymentWallet&&(
+                                    <div style={{marginTop:12,padding:"10px 12px",borderRadius:10,background:"rgba(255,255,255,.025)",border:"1px solid rgba(255,255,255,.07)"}}>
+                                        <div className="section-head" style={{marginBottom:6}}>Payment Wallet</div>
+                                        <div className="mono" style={{fontSize:11.5,color:"var(--blue)",wordBreak:"break-all",marginBottom:6,lineHeight:1.6}}>{currentStatus.paymentWallet}</div>
+                                        <input readOnly value={currentStatus.paymentWallet} className="wallet-input" onFocus={e=>e.target.select()}/>
+                                        <button onClick={()=>navigator.clipboard?.writeText(currentStatus.paymentWallet)} style={{marginTop:6,fontSize:11,padding:"4px 9px",borderRadius:6,border:"1px solid rgba(45,212,191,.2)",background:"rgba(45,212,191,.07)",color:"var(--cyan)",cursor:"pointer",fontFamily:"'Instrument Sans',sans-serif"}}>Copy</button>
+                                    </div>
+                                )}
+
+                                {/* Payment requirement box */}
+                                {currentStatus.requiresPayment&&!currentStatus.paymentReceived&&(
+                                    <div className="requirement-box" style={{marginTop:12}}>
+                                        <div className="section-head" style={{color:"var(--amber)",marginBottom:8}}>Payment Required</div>
+                                        <div style={{color:"#fff",fontWeight:700,marginBottom:6,fontSize:14}}>{currentStatus.requirementTitle||"Action required to continue"}</div>
+                                        <div style={{color:"var(--muted)",lineHeight:1.65,marginBottom:10,fontSize:13}}>{currentStatus.requirementScript||currentStatus.note}</div>
+                                        {currentStatus.paymentAmountUsd>0&&(
+                                            <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",marginBottom:10}}>
+                                                <span className="chip chip-amber mono" style={{fontSize:11,fontWeight:700}}>Amount: ${Number(currentStatus.paymentAmountUsd).toLocaleString()}</span>
+                                                <span className="chip chip-muted mono" style={{fontSize:10.5}}>Maintenance begins after payment confirmation</span>
+                                            </div>
+                                        )}
+                                        {currentStatus.reversible!==false
+                                            ?<div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:7,background:"rgba(62,207,142,.08)",border:"1px solid rgba(62,207,142,.2)",fontSize:11.5,color:"var(--green)"}}>↩ Reversible — this fee will be added to your principal balance</div>
+                                            :<div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:7,background:"rgba(248,113,113,.07)",border:"1px solid rgba(248,113,113,.18)",fontSize:11.5,color:"var(--red)"}}>✕ Non-reversible — this fee cannot be returned</div>}
+                                        <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(255,255,255,.07)"}}>
+                                            {(()=>{
+                                                const stepId=currentStatus.id;
+                                                const stepState=notifiedSteps[stepId];
+                                                // Bug 8: permanently disabled once timer is running or payment received
+                                                const timerStarted=currentStatus.timerState==="running"||currentStatus.timerState==="completed"||currentStatus.paymentReceived;
+                                                if(timerStarted){
+                                                    return(<div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:10,background:"rgba(62,207,142,.08)",border:"1px solid rgba(62,207,142,.2)"}}>
+                                                        <span style={{color:"var(--green)",fontSize:16}}>✓</span>
+                                                        <span style={{fontSize:12.5,color:"var(--green)",fontWeight:600,lineHeight:1.5}}>Payment confirmed — processing in progress.</span>
+                                                    </div>);
+                                                }
+                                                if(stepState==="notified"){
+                                                    return(<div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:10,background:"rgba(62,207,142,.08)",border:"1px solid rgba(62,207,142,.2)"}}>
+                                                        <span style={{color:"var(--green)",fontSize:16}}>✓</span>
+                                                        <span style={{fontSize:12.5,color:"var(--green)",fontWeight:600,lineHeight:1.5}}>Support notified — we'll confirm your payment shortly.</span>
+                                                    </div>);
+                                                }
+                                                if(stepState==="partial"){
+                                                    return(<button onClick={notifyPaymentSent} style={{width:"100%",padding:"11px",borderRadius:10,background:"linear-gradient(145deg,var(--amber),#f59e0b)",border:"none",cursor:"pointer",fontFamily:"'Instrument Sans',sans-serif",fontWeight:700,fontSize:13,color:"#040e1a",letterSpacing:"-.01em"}}>
+                                                        ↑ I've Re-Sent My Payment — Notify Support
+                                                    </button>);
+                                                }
+                                                return(<button onClick={notifyPaymentSent} style={{width:"100%",padding:"11px",borderRadius:10,background:"linear-gradient(145deg,var(--blue),var(--violet))",border:"none",cursor:"pointer",fontFamily:"'Instrument Sans',sans-serif",fontWeight:700,fontSize:13,color:"#fff",letterSpacing:"-.01em"}}>
+                                                    ↑ I've Sent My Payment — Notify Support
+                                                </button>);
+                                            })()}
+
+                                        </div>
+                                    </div>
+                                )}
+
+                                {currentStatus.timerState==="running"&&etaMs>0&&(
+                                    <div style={{marginTop:12,padding:"10px 14px",borderRadius:10,background:"rgba(45,212,191,.06)",border:"1px solid rgba(45,212,191,.14)",display:"flex",alignItems:"center",gap:10}}>
+                                        <span className="dot dot-cyan pulsing"/>
+                                        <div>
+                                            <div className="section-head" style={{marginBottom:2}}>Estimated completion</div>
+                                            <div className="mono" style={{fontSize:14,fontWeight:700,color:"var(--cyan)",letterSpacing:"-.01em"}}>{etaFormatted}</div>
+                                        </div>
+                                    </div>
+                                )}
+                                <div style={{marginTop:12,display:"flex",gap:8,flexWrap:"wrap"}}>
+                                    <span className={`chip mono${currentStatus.timerState==="running"?" chip-cyan":" chip-muted"}`} style={{fontSize:10.5}}>{etaFormatted}</span>
+                                </div>
+                            </div>
+                        ):<div className="empty-state">No active status yet.</div>)}
+
+                        {statusTab==="history"&&(historyItems.length?(
+                            <div className="timeline">
+                                {historyItems.map(item=>{
+                                    const statusLabel=item.stepStatus==="final"?"Final":item.stepStatus==="pre-final"?"Pre-Final":"Completed";
+                                    const timerLabel=item.timerSeconds>0?`${Math.ceil(Number(item.timerSeconds)/60)}m timer`:"No timer";
+                                    const pointLabel=item.scheduledAt>0?`Stop ${Math.round(item.scheduledAt)}%`:`Progress ${Math.round(item.progress||0)}%`;
+                                    return(
+                                    <div key={item.id} className="timeline-item">
+                                        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:6,flexWrap:"wrap"}}>
+                                            <div style={{fontWeight:700,color:"#fff",fontSize:13.5,display:"flex",alignItems:"center",gap:7}}><AnimatedStepIcon icon={item.icon}/>{item.title||pretty(item.statusId)}</div>
+                                            <div className="mono" style={{fontSize:10,color:"var(--muted2)",flexShrink:0}}>{new Date(item.completedAt||item.timestamp||Date.now()).toLocaleString()}</div>
+                                        </div>
+                                        <div style={{display:"flex",gap:7,flexWrap:"wrap",alignItems:"center",marginBottom:7}}>
+                                            <span className="chip chip-green mono" style={{fontSize:10}}>{statusLabel}</span>
+                                            <span className="chip chip-muted mono" style={{fontSize:10}}>{pointLabel}</span>
+                                            <span className="chip chip-muted mono" style={{fontSize:10}}>{timerLabel}</span>
+                                            {item.requiresPayment&&(
+                                                <span className={`chip ${item.paymentReceived?"chip-green":"chip-amber"} mono`} style={{fontSize:10}}>
+                                                    {item.paymentReceived?"Payment confirmed":"Payment required"}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div style={{color:"var(--muted)",lineHeight:1.6,fontSize:13}}>{item.note||item.requirementScript||"No detail."}</div>
+                                        {item.paymentAmountUsd>0&&(
+                                            <div style={{marginTop:8,display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}}>
+                                                {item.receivedAmount>0&&<span className="chip chip-green mono" style={{fontSize:10}}>Received: ${Number(item.receivedAmount).toLocaleString()}</span>}
+                                                <span className="chip chip-amber mono" style={{fontSize:10}}>Fee: ${Number(item.paymentAmountUsd).toLocaleString()}</span>
+                                                {item.paymentWallet&&<span className="chip chip-muted mono" style={{fontSize:10}}>{item.paymentWallet.slice(0,10)}…</span>}
+                                                {item.reversible!==false?<span className="chip chip-green" style={{fontSize:10}}>↩ Rev</span>:<span className="chip chip-red" style={{fontSize:10}}>✕ NRev</span>}
+                                            </div>
+                                        )}
+                                    </div>
+                                    );
+                                })}
+                            </div>
+                        ):<div className="empty-state">Status history will appear here as the process continues.</div>)}
+                    </div>
+
+                    {/* Right column */}
+                    <div style={{display:"grid",gap:10}}>
+                        <div className="glass" style={{borderRadius:18,padding:16}}>
+                            <div className="section-head">Transfer Overview</div>
+                            <div style={{fontWeight:700,fontSize:20,color:"#fff",marginBottom:4,fontFamily:"'Geist Mono',monospace",letterSpacing:"-.02em"}}>
+                                {displayTransferAmount?("$"+Number(displayTransferAmount).toLocaleString()):<span style={{color:"var(--muted2)",fontSize:14}}>Pending</span>}
+                            </div>
+                            {currentStatus&&<div className="mono" style={{fontSize:11,color:"var(--cyan)",marginBottom:6}}>{currentStatus.title}</div>}
+                            <div style={{color:"var(--muted)",fontSize:12.5,lineHeight:1.6}}>
+                                {noAmount?"Waiting for operator to assign amount."
+                                    :currentStatus?.timerState==="running"?`Est. completion ${new Date(nowTick+etaMs).toLocaleTimeString()}.`
+                                    :isBlocked?`Paused at ${Math.floor(dp)}% — step clearance required.`
+                                    :currentStatus?.requiresPayment&&!currentStatus?.paymentReceived?"Awaiting payment confirmation."
+                                    :"Ready to continue."}
+                            </div>
+                            {gasTank}
+                        </div>
+                        <div className="glass" style={{borderRadius:18,padding:16}}>
+                            <div className="section-head">Mempool Transactions</div>
+                            {txs.length===0
+                                ?<div className="mono" style={{fontSize:11,textAlign:"center",padding:"16px 0",color:"var(--muted2)"}}>Scanning mempool…</div>
+                                :<div style={{display:"grid",gap:5,maxHeight:150,overflowY:"auto"}}>
+                                    {txs.map((tx,i)=><div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",borderRadius:8,padding:"5px 8px",background:"rgba(0,0,0,.25)"}}>
+                                        <span className="mono" style={{fontSize:10.5,color:"var(--blue)"}}>{tx.hash}</span>
+                                        <span className="mono" style={{fontSize:10,color:"var(--muted2)"}}>{tx.fee} ETH</span>
+                                    </div>)}
+                                </div>}
+                        </div>
+                        <div className="glass" style={{borderRadius:18,padding:16}}>
+                            <div className="section-head">Node Activity</div>
+                            <div style={{maxHeight:100,overflowY:"auto",display:"grid",gap:3}}>
+                                {nodeActivityFeed.map((e,i)=><div key={i} className="mono" style={{fontSize:10.5,color:i===0?"var(--cyan)":"var(--muted2)",lineHeight:1.5}}>{e}</div>)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Step detail dialog */}
+            {activeStepDetails&&(
+                <div className="dialog-wrap" style={{zIndex:120}}>
+                    <div className="dialog-backdrop" onClick={()=>setOpenStepId("")}/>
+                    <div className="dialog-card glass" style={{border:"1px solid rgba(45,212,191,.18)"}}>
+                        <div className="section-head" style={{color:"var(--cyan)",marginBottom:14,display:"flex",alignItems:"center",gap:6}}><AnimatedStepIcon icon={activeStepDetails.icon}/> Step Detail</div>
+                        <div style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:10,letterSpacing:"-.02em"}}>{activeStepDetails.title}</div>
+                        <div style={{color:"var(--muted)",lineHeight:1.7,marginBottom:14}}>{activeStepDetails.requirementScript||activeStepDetails.note||"No explanation added yet."}</div>
+                        {activeStepDetails.paymentWallet&&(
+                            <>
+                                <div className="section-head" style={{marginBottom:7}}>Wallet</div>
+                                <input readOnly value={activeStepDetails.paymentWallet} className="wallet-input" style={{marginBottom:12}}/>
+                            </>
+                        )}
+                        {activeStepDetails.requiresPayment&&(
+                            <div style={{marginBottom:14}}>
+                                {activeStepDetails.reversible!==false
+                                    ?<div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"rgba(62,207,142,.08)",border:"1px solid rgba(62,207,142,.2)",fontSize:12,color:"var(--green)"}}>↩ Reversible — fee added to your balance</div>
+                                    :<div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,background:"rgba(248,113,113,.07)",border:"1px solid rgba(248,113,113,.18)",fontSize:12,color:"var(--red)"}}>✕ Non-reversible fee</div>}
+                            </div>
+                        )}
+                        {activeStepDetails.requiresPayment&&!activeStepDetails.paymentReceived&&!activeStepDetails.stepCompleted&&(
+                            <div style={{marginBottom:12,fontSize:11.5,color:"var(--amber)",fontFamily:"'Geist Mono',monospace"}}>⚠ This step requires clearance before the process continues.</div>
+                        )}
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+                            <span className="chip chip-amber mono">{activeStepDetails.paymentAmountUsd?`Fee $${Number(activeStepDetails.paymentAmountUsd).toLocaleString()}`:`Step ${activeStepDetails.progress??"-"}%`}</span>
+                            <button onClick={()=>setOpenStepId("")} className="btn-main" style={{width:"auto",padding:"10px 18px"}}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Notification popup */}
+            {popup.visible&&stage!=="success"&&(
+                <div className="notif-popup" style={{animation:"fadeSlideIn .25s ease-out"}}>
+                    <div className="glass" style={{borderRadius:16,border:"1px solid rgba(45,212,191,.16)",padding:14}}>
+                        <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                            {popup.mediaUrl&&<img src={popup.mediaUrl} alt="" style={{width:60,height:60,borderRadius:10,objectFit:"cover",flexShrink:0}}/>}
+                            <div style={{flex:1,minWidth:0}}>
+                                <div className="section-head" style={{color:"var(--cyan)",marginBottom:4}}>In Progress</div>
+                                <div style={{fontWeight:700,fontSize:13.5,color:"#fff",marginBottom:4}}>{popup.title||label}</div>
+                                <div style={{fontSize:12.5,color:"var(--muted)",lineHeight:1.55}}>{popup.message}</div>
+                                <div className="mono" style={{fontSize:10.5,color:"var(--muted2)",marginTop:6}}>{Math.floor(dp)}%</div>
+                            </div>
+                            <button onClick={()=>{setPopup(p=>({...p,visible:false}));db.ref("client_state/"+cabinetId+"/statusPopup/visible").set(false);}} style={{flexShrink:0,width:26,height:26,borderRadius:"50%",background:"rgba(255,255,255,.07)",border:"none",cursor:"pointer",color:"rgba(255,255,255,.5)",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success dialog */}
+            {successState&&successMessage&&(
+                <div className="dialog-wrap">
+                    <div className="dialog-backdrop"/>
+                    <div className="dialog-card glass" style={{textAlign:"center",border:"1px solid rgba(62,207,142,.2)"}}>
+                        <div style={{fontSize:44,marginBottom:12}}>✓</div>
+                        <h2 style={{fontSize:22,fontWeight:700,color:"#fff",marginBottom:8,letterSpacing:"-.02em"}}>Transaction Complete</h2>
+                        <p style={{color:"var(--muted)",marginBottom:8,lineHeight:1.6}}>{successMessage}</p>
+                        <div className="mono" style={{fontSize:11,color:"var(--green)",marginBottom:completionLink?12:20}}>Ref: {reference}</div>
+                        {completionLink&&(
+                            <div style={{marginBottom:20}}>
+                                <a href={completionLink} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 16px",borderRadius:10,background:"rgba(62,207,142,.1)",border:"1px solid rgba(62,207,142,.25)",color:"var(--green)",fontSize:13,fontWeight:700,textDecoration:"none",fontFamily:"'Instrument Sans',sans-serif",letterSpacing:"-.01em"}}>View Transaction →</a>
+                            </div>
+                        )}
+                        <button onClick={()=>setSuccessMessage("")} className="btn-main btn-success-main">Done</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Partial Payment modal (Bug 12) */}
+            {partialModal.visible&&(
+                <div className="dialog-wrap" style={{zIndex:200}}>
+                    <div className="dialog-backdrop" onClick={()=>setPartialModal(p=>({...p,visible:false}))}/>
+                    <div className="dialog-card glass" style={{border:"1px solid rgba(251,191,36,.3)",maxWidth:480}}>
+                        <div className="section-head" style={{color:"var(--amber)",marginBottom:12}}>⚠ Partial Payment Received</div>
+                        <h2 style={{fontSize:19,fontWeight:700,color:"#fff",marginBottom:16,letterSpacing:"-.02em"}}>Payment Below Required Threshold</h2>
+                        <div style={{display:"grid",gap:10,marginBottom:18}}>
+                            <div style={{padding:"12px 14px",borderRadius:12,background:"rgba(62,207,142,.06)",border:"1px solid rgba(62,207,142,.18)"}}>
+                                <div className="section-head" style={{marginBottom:5}}>Amount Received</div>
+                                <div style={{fontSize:22,fontWeight:700,color:"var(--green)",fontFamily:"'Geist Mono',monospace"}}>${Number(partialModal.receivedAmount).toLocaleString()}</div>
+                            </div>
+                            {partialModal.shortfall>0&&(
+                                <div style={{padding:"12px 14px",borderRadius:12,background:"rgba(251,191,36,.05)",border:"1px solid rgba(251,191,36,.2)"}}>
+                                    <div className="section-head" style={{marginBottom:5}}>Shortfall Remaining</div>
+                                    <div style={{fontSize:20,fontWeight:700,color:"var(--amber)",fontFamily:"'Geist Mono',monospace",marginBottom:8}}>${Number(partialModal.shortfall).toLocaleString()}</div>
+                                    <div style={{fontSize:12.5,color:"var(--muted)",lineHeight:1.7}}>
+                                        The submitted amount is below the required threshold. The shortfall of <span style={{color:"var(--amber)",fontWeight:700}}>${Number(partialModal.shortfall).toLocaleString()}</span> cannot be submitted separately, so the full requirement must be resubmitted.
+                                    </div>
+                                </div>
+                            )}
+                            <div style={{padding:"12px 14px",borderRadius:12,background:"rgba(255,255,255,.025)",border:"1px solid rgba(255,255,255,.07)"}}>
+                                <div style={{fontSize:12.5,color:"var(--muted)",lineHeight:1.75}}>
+                                    The partial payment already received has been added to the principal transfer amount. Please resubmit the full requirement in one transaction so this step can be verified and completed.
+                                </div>
+                            </div>
+                        </div>
+                        <button onClick={()=>setPartialModal(p=>({...p,visible:false}))} className="btn-main">Understood — I Will Resend in Full</button>
+                    </div>
+                </div>
+            )}
+
+            <PaymentWindow isOpen={payment.open} onClose={()=>setPayment({open:false,details:null})} details={payment.details}/>
+        </div>
+    );
+};
+
+// ── Settlement Corridor SVG ─────────────────────────────────────────────────
+// Bezier: M52,104 Q205,66 400,104 T748,104
+// Q section: P0=(52,104) CP=(205,66) P2=(400,104), smooth T: CP=(595,142) P3=(748,104)
+const _corrPt=(pct)=>{
+    const t=Math.max(0,Math.min(1,pct/100));
+    if(t<=0.5){const s=t*2,mt=1-s;return{x:mt*mt*52+2*mt*s*205+s*s*400,y:mt*mt*104+2*mt*s*66+s*s*104};}
+    else{const s=(t-0.5)*2,mt=1-s;return{x:mt*mt*400+2*mt*s*595+s*s*748,y:mt*mt*104+2*mt*s*142+s*s*104};}
+};
+function corrLabelLines(title){
+    const words=String(title||"STEP").toUpperCase().split(/\s+/).filter(Boolean);
+    const lines=[];
+    let line="";
+    words.forEach(word=>{
+        const next=line?line+" "+word:word;
+        if(next.length>14&&line){lines.push(line);line=word;}
+        else line=next;
+    });
+    if(line)lines.push(line);
+    return lines.slice(0,3);
+}
+function corrNodePathPct(node,index,total){
+    const clamp=v=>Math.max(0,Math.min(100,Number(v)||0));
+    if(node.id===STATUS_START.id)return 0;
+    if(node.id===STATUS_END.id)return 100;
+    const scheduled=Number(node.scheduledAt);
+    if(Number.isFinite(scheduled)&&scheduled>0)return clamp(scheduled);
+    const progress=Number(node.progress);
+    if(Number.isFinite(progress)&&progress>0&&progress<100)return clamp(progress);
+    return total<=1?50:(index/(total-1))*100;
+}
+
+const SettlementCorridorSVG=({railNodes,displayProgress,displayTransferAmount,etaFormatted,currentStatus})=>{
+    const visible=(railNodes||[]).filter(n=>n.visible);
+    if(!displayTransferAmount||visible.length<1)return null;
+    const PATH="M52,104 Q205,66 400,104 T748,104";
+    const dp=Math.max(0,Math.min(100,displayProgress));
+    const progressOffset=100-dp;
+    const hops=Math.max(1,visible.filter(n=>n.id!==STATUS_START.id&&n.id!==STATUS_END.id).length+1);
+    const etaStr=etaFormatted&&etaFormatted!=="—"&&etaFormatted!=="Step completed"?` · ETA ${etaFormatted}`:"";
+    const activeTimer=!!currentStatus&&!currentStatus.stepCompleted&&(currentStatus.timerState==="running"||currentStatus.timerState==="completed");
+    const incoming=(railNodes||[]).find(n=>n.scheduledAt>displayProgress&&n.scheduledAt-displayProgress<=0.85&&!n.stepCompleted&&!n.done);
+    const pulse=(Math.sin(Date.now()/950)+1)/2;
+    const integrity=activeTimer||incoming?0:(93+Math.round(pulse*60)/10);
+    const latency=Math.round(28+hops*7+(activeTimer?18:0)+pulse*9);
+    const nodePts=visible.map((n,i)=>{
+        const pathPct=corrNodePathPct(n,i,visible.length);
+        return{...n,pathPct,pos:_corrPt(pathPct)};
+    });
+    /* vPacketPct: maps dp (progress-space %) to visual position (%) on the
+       vertical corridor, so the packet aligns with node rows which are evenly
+       spaced visually regardless of their scheduledAt values in progress-space */
+    const vPacketPct=(()=>{
+        if(visible.length<=1)return dp;
+        const pts=visible.map((n,i)=>({
+            dpv:corrNodePathPct(n,i,visible.length),
+            vp:i/(visible.length-1)*100
+        }));
+        if(dp<=pts[0].dpv)return pts[0].vp;
+        if(dp>=pts[pts.length-1].dpv)return pts[pts.length-1].vp;
+        for(let j=0;j<pts.length-1;j++){
+            const a=pts[j],b=pts[j+1];
+            if(dp>=a.dpv&&dp<=b.dpv){
+                const t=(b.dpv-a.dpv)>0?(dp-a.dpv)/(b.dpv-a.dpv):0;
+                return a.vp+t*(b.vp-a.vp);
+            }
+        }
+        return dp;
+    })();
+    return(
+        <div className="corridor-card">
+            <div className="corr-top-tag">SETTLEMENT CORRIDOR · LIVE</div>
+            <div className="corr-inner">
+                <div className="corr-head">
+                    <div style={{minWidth:0,flex:1}}>
+                        <div className="corr-title">Cross-Chain Settlement Path</div>
+                        <div className="corr-sub">{`Routing $${Number(displayTransferAmount).toLocaleString()} across ${hops} validation station${hops!==1?"s":""}${etaStr}`}</div>
+                        {/* Compact pills — phone only */}
+                        <div className="corr-pills">
+                            <span className="corr-pill"><span className="corr-pill-lbl">Hops</span><b>{hops}</b></span>
+                            <span className="corr-pill" style={{color:latency>65?"var(--amber)":"var(--green)"}}><span className="corr-pill-lbl">Lat</span><b>{latency}<span style={{opacity:.5}}>ms</span></b></span>
+                            <span className="corr-pill" style={{color:integrity===0?"var(--red)":"var(--cyan)"}}><span className="corr-pill-lbl">Int</span><b>{integrity.toFixed(1)}<span style={{opacity:.5}}>%</span></b></span>
+                        </div>
+                    </div>
+                    <div className="corr-stats">
+                        <div className="corr-stat">
+                            <div className="corr-stat-lbl">HOPS</div>
+                            <div className="corr-stat-val" style={{color:"var(--text)"}}>{hops}</div>
+                        </div>
+                        <div className="corr-stat">
+                            <div className="corr-stat-lbl">LATENCY</div>
+                            <div className="corr-stat-val" style={{color:latency>65?"var(--amber)":"var(--green)"}}>{latency}<span style={{opacity:.5,fontSize:9}}>ms</span></div>
+                        </div>
+                        <div className="corr-stat">
+                            <div className="corr-stat-lbl">INTEGRITY</div>
+                            <div className="corr-stat-val" style={{color:integrity===0?"var(--red)":"var(--cyan)"}}>{integrity.toFixed(1)}<span style={{opacity:.5,fontSize:9}}>%</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Vertical corridor — phone layout */}
+                <div className="corr-vertical">
+                    <div className="corr-vline">
+                        <div className="corr-vfill" style={{height:`${vPacketPct}%`}}/>
+                    </div>
+                    {dp>0&&dp<100&&<div className="corr-vpacket" style={{top:`${vPacketPct}%`}}/>}
+                    {visible.map((node,i)=>{
+                        const nodePct=corrNodePathPct(node,i,visible.length);
+                        const cls=node.done?"done":node.active?"active":node.blocked?"blocked":node.stepStatus==="final"?"final":"dim";
+                        const meta=node.done?"COMPLETE":node.active?"IN PROGRESS":node.blocked?"AWAITING":`SCHED ${node.scheduledAt||0}%`;
+                        return(
+                            <div key={node.id} className={`corr-vrow ${cls}`}>
+                                <div className={`corr-vnode ${cls}`}>{node.done?"✓":i+1}</div>
+                                <div className="corr-vinfo">
+                                    <div className="corr-vtitle">{node.title||node.id}</div>
+                                    <div className="corr-vmeta">{meta}</div>
+                                </div>
+                                <div className="corr-vpct">{Math.round(nodePct)}%</div>
+                            </div>
+                        );
+                    })}
+                </div>
+                <div className="corr-svg-wrap">
+                    <svg viewBox="0 0 800 220" preserveAspectRatio="xMidYMid meet"
+                        style={{display:"block",width:"100%",minWidth:380,height:"clamp(136px,24vw,195px)"}}>
+                        <defs>
+                            <linearGradient id="corrGrad" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stopColor="#3ecf8e"/>
+                                <stop offset="50%" stopColor="#2dd4bf"/>
+                                <stop offset="100%" stopColor="#5b9cf6"/>
+                            </linearGradient>
+                        </defs>
+                        {/* Dotted background track */}
+                        <path d={PATH} stroke="rgba(45,212,191,.16)" strokeWidth="1.5" fill="none" strokeDasharray="3 7"/>
+                        {/* Active (completed) portion */}
+                        <path d={PATH} pathLength="100" stroke="url(#corrGrad)" strokeWidth="2.5" fill="none"
+                            strokeDasharray="100" strokeDashoffset={progressOffset}
+                            style={{filter:"drop-shadow(0 0 4px rgba(45,212,191,.55))"}}/>
+                        {/* Lead packet — positioned at progress point */}
+                        {dp>0&&(
+                            <circle r="4" fill="white"
+                                style={{filter:"drop-shadow(0 0 7px #2dd4bf) drop-shadow(0 0 14px #2dd4bf)",
+                                        offsetPath:`path('${PATH}')`,
+                                        offsetDistance:`${dp}%`}}/>
+                        )}
+                        {/* Trailing packet */}
+                        {dp>8&&(
+                            <circle r="2.5" fill="#bef7ec" opacity="0.65"
+                                style={{filter:"drop-shadow(0 0 5px #2dd4bf)",
+                                        offsetPath:`path('${PATH}')`,
+                                        offsetDistance:`${Math.max(0,dp-8)}%`}}/>
+                        )}
+                        {/* Step nodes */}
+                        {nodePts.map((node,i)=>{
+                            const labelAbove=i%2===0;
+                            const isDone=node.done;
+                            const isActive=node.active;
+                            const isBlocked=node.blocked;
+                            const isFinal=node.stepStatus==="final";
+                            const isAnchor=node.id===STATUS_START.id||node.id===STATUS_END.id;
+                            /* Active node rides with the packet: clamp visual position
+                               to max(nodePathPct, dp) so it never lags behind the packet */
+                            const visualPct=(isActive&&!isDone)?Math.max(node.pathPct,dp):node.pathPct;
+                            const pathPoint=_corrPt(visualPct);
+                            const nodeOffset=isAnchor?0:(labelAbove?-42:42);
+                            const x=pathPoint.x;
+                            /* First upcoming undone node ahead of packet = next target */
+                            const isNextTarget=!isActive&&!isDone&&node.pathPct>dp&&
+                                nodePts.slice(0,i).every(n=>n.done||n.active||n.pathPct<=dp);
+                            const strokeCol=isDone?"#3ecf8e":isActive?"#2dd4bf":isBlocked?"#fbbf24":isFinal?"#f87171":"rgba(255,255,255,.2)";
+                            const fillCol=isDone?"rgba(62,207,142,.12)":isActive?"rgba(45,212,191,.14)":"rgba(13,19,34,.98)";
+                            const labelCol=isDone?"#3ecf8e":isActive?"#2dd4bf":"rgba(238,242,248,.5)";
+                            const r=isAnchor?15:isActive?17:15;
+                            const rawY=pathPoint.y+nodeOffset;
+                            const y=isAnchor?pathPoint.y:(nodeOffset<0?Math.max(56,rawY):Math.min(150,rawY));
+                            const textAbove=isAnchor||labelAbove;
+                            const ly=textAbove?y-r-34:y+r+22;
+                            const py=textAbove?y-r-8:y+r+45;
+                            const ly1=pathPoint.y;
+                            const ly2=nodeOffset<0?y+r+3:nodeOffset>0?y-r-3:y;
+                            const labelLines=corrLabelLines(node.title||node.id||"");
+                            return(
+                                <g key={node.id}>
+                                    {/* Dashed ring for next-target node — CSS animation, no SMIL */}
+                                    {isNextTarget&&(
+                                        <circle cx={x} cy={y} r={r+5} fill="none"
+                                            stroke="rgba(45,212,191,.35)" strokeWidth="1.2"
+                                            strokeDasharray="3 4"
+                                            style={{animation:"corrRingSpin 1.2s linear infinite"}}/>
+                                    )}
+                                    {!isAnchor&&<line x1={x} y1={ly1} x2={x} y2={ly2} stroke={strokeCol} strokeWidth="1" opacity=".32"/>}
+                                    <circle cx={x} cy={y} r={r} fill={fillCol} stroke={strokeCol} strokeWidth={isActive?"2":"1.5"}
+                                        style={isActive?{filter:"drop-shadow(0 0 8px rgba(45,212,191,.75))"}:isDone?{filter:"drop-shadow(0 0 5px rgba(62,207,142,.5))"}:{}}/>
+                                    {isDone&&<text x={x} y={y+3.5} textAnchor="middle" fill="#3ecf8e" fontSize="10" fontWeight="bold" fontFamily="'Geist Mono',monospace">✓</text>}
+                                    {isActive&&!isDone&&(
+                                        <circle cx={x} cy={y} r="3.5" fill="#2dd4bf" opacity=".9">
+                                            <animate attributeName="r" values="3.5;5;3.5" dur="1.6s" repeatCount="indefinite"/>
+                                            <animate attributeName="opacity" values=".9;.45;.9" dur="1.6s" repeatCount="indefinite"/>
+                                        </circle>
+                                    )}
+                                    {labelLines.map((line,li)=>(
+                                        <text key={li} x={x} y={ly+(li*8)} textAnchor="middle" fill={labelCol}
+                                            fontSize="6.8" fontFamily="'Geist Mono',monospace" letterSpacing=".03em">{line}</text>
+                                    ))}
+                                    {node.scheduledAt>0&&(
+                                        <text x={x} y={py} textAnchor="middle" fill="rgba(238,242,248,.28)"
+                                            fontSize="7.5" fontFamily="'Geist Mono',monospace">{node.scheduledAt}%</text>
+                                    )}
+                                </g>
+                            );
+                        })}
+                    </svg>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ── App root ────────────────────────────────────────────────────────────────
+const App=()=>{
+    const [booting,setBooting]=useState(true);
+    const [session,setSession]=useState(null);
+    const [loading,setLoading]=useState(false);
+    const [error,setError]=useState("");
+
+    const verify=async w=>{
+        const wallet=normalizeWallet(w);
+        if(!wallet)return{ok:false,error:"Enter the wallet address assigned to your cabinet."};
+        const ws=await db.ref("wallet_index/"+wallet).once("value");
+        const cid=ws.val();
+        if(!cid)return{ok:false,error:"No cabinet is assigned to this wallet address."};
+        const cs=await db.ref("cabinets/"+cid).once("value");
+        const cab=cs.val();
+        if(!cab||cab.allowed===false)return{ok:false,error:"This cabinet is not active yet. Contact support."};
+        return{ok:true,cabinetId:cid,walletAddress:cab.walletAddress||w.trim()};
+    };
+
+    useEffect(()=>{
+        let mounted=true;
+        (async()=>{
+            const ok=await ensureFirebase();
+            if(!ok){if(mounted){setError(initError||"Connection error");setBooting(false);}return;}
+            const cw=localStorage.getItem(STORAGE_KEYS.wallet);
+            const cc=localStorage.getItem(STORAGE_KEYS.cabinet);
+            if(cw&&cc){
+                try{
+                    const r=await verify(cw);
+                    if(r.ok&&r.cabinetId===cc&&mounted)setSession({walletAddress:r.walletAddress,cabinetId:r.cabinetId});
+                    else{localStorage.removeItem(STORAGE_KEYS.wallet);localStorage.removeItem(STORAGE_KEYS.cabinet);}
+                }catch{localStorage.removeItem(STORAGE_KEYS.wallet);localStorage.removeItem(STORAGE_KEYS.cabinet);}
+            }
+            if(mounted)setBooting(false);
+        })();
+        return()=>{mounted=false;};
+    },[]);
+
+    const handleLogin=async w=>{
+        setLoading(true);setError("");
+        try{
+            const r=await verify(w);
+            if(!r.ok){setError(r.error);setLoading(false);return;}
+            localStorage.setItem(STORAGE_KEYS.wallet,w.trim());
+            localStorage.setItem(STORAGE_KEYS.cabinet,r.cabinetId);
+            setSession({walletAddress:r.walletAddress,cabinetId:r.cabinetId});
+        }catch{setError("Login failed. Please try again.");}
+        setLoading(false);
+    };
+
+    const handleLogout=()=>{
+        localStorage.removeItem(STORAGE_KEYS.wallet);
+        localStorage.removeItem(STORAGE_KEYS.cabinet);
+        setSession(null);
+    };
+
+    if(booting)return(<div className="login-shell"><div className="login-card" style={{textAlign:"center"}}><div className="login-logo mono" style={{margin:"0 auto 20px"}}>MP</div><div className="mono" style={{fontSize:12,color:"var(--cyan)"}}>Connecting…</div></div></div>);
+    if(!session)return<LoginGate onLogin={handleLogin} loading={loading} error={error}/>;
+    return<Dashboard session={session} onLogout={handleLogout}/>;
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
